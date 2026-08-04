@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  memberships  Membership[]
+  documents    Document[]   @relation("DocumentCreator")
+  accounts     Account[]
+  sessions     Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Organization {
+  id               String         @id @default(cuid())
+  name             String
+  slug             String         @unique
+  planKey          String         @default("free")
+  seatLimit        Int            @default(3)
+  docLimitMonthly  Int            @default(20)
+  stripeCustomerId String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  memberships      Membership[]
+  invitations      Invitation[]
+  documents        Document[]
+  usageMeters      UsageMeter[]
+  template         OrgTemplate?
+}
+
+model Membership {
+  id             String   @id @default(cuid())
+  userId         String
+  organizationId String
+  role           String   @default("MEMBER") // OWNER | ADMIN | MEMBER
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+}
+
+model Invitation {
+  id             String    @id @default(cuid())
+  organizationId String
+  email          String
+  role           String    @default("MEMBER")
+  token          String    @unique
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, email])
+}
+
+model Document {
+  id             String   @id @default(cuid())
+  organizationId String
+  createdById    String
+  type           String // EXTERNAL | INTERNAL | MEETING | ORDER | CERT
+  title          String
+  status         String   @default("DRAFT") // DRAFT | FINAL
+  payload        String // JSON string
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy      User     @relation("DocumentCreator", fields: [createdById], references: [id])
+
+  @@index([organizationId, updatedAt])
+  @@index([createdById])
+}
+
+model UsageMeter {
+  id             String       @id @default(cuid())
+  organizationId String
+  yearMonth      String
+  docsCreated    Int          @default(0)
+  exportsCount   Int          @default(0)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, yearMonth])
+}
+
+model OrgTemplate {
+  id             String       @id @default(cuid())
+  organizationId String       @unique
+  department     String       @default("")
+  docNumPrefix   String       @default("")
+  tel            String       @default("")
+  fax            String       @default("")
+  email          String       @default("")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}

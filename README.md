@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# EasyKrut
 
-## Getting Started
+ระบบสร้างเอกสารราชการอิเล็กทรอนิกส์สำหรับหน่วยงาน (multi-tenant)
 
-First, run the development server:
+## ความต้องการ
+
+- Node.js 20+
+- (ทางเลือก) Docker สำหรับ PostgreSQL ในโปรดักชัน
+
+## เริ่มต้น
 
 ```bash
+# 1) ตั้งค่า env
+cp .env.example .env
+
+# 2) ติดตั้งและ migrate (ค่าเริ่มต้นใช้ SQLite ไฟล์ prisma/dev.db)
+npm install
+npx prisma migrate dev --name init
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+เปิด [http://localhost:3010](http://localhost:3010)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+> พอร์ต **3010** ตั้งไว้เพื่อไม่ชน Grafana ที่มักใช้ `:3000` — ค่า `AUTH_URL` ใน `.env` ต้องตรงกับพอร์ตนี้
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+บัญชีทดลอง (หลังรัน seed):
 
-## Learn More
+```bash
+node scripts/seed-demo.js
+# อีเมล: demo@easykrut.local
+# รหัสผ่าน: demo1234
+```
 
-To learn more about Next.js, take a look at the following resources:
+ถ้าต้องการ Postgres แทน: เปิด Docker Desktop แล้วรัน `docker compose up -d` จากนั้นปรับ schema/provider และ `DATABASE_URL`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## สิ่งที่ได้ใน MVP
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- สมัคร / เข้าสู่ระบบ / เชิญสมาชิกหน่วยงาน
+- สร้าง·แก้ไข **หนังสือภายนอก** พร้อมพรีวิวสด A4
+- บันทึก DRAFT/FINAL, ประวัติเอกสาร
+- Export PDF (หน้าพิมพ์) และ Word (`.docx`)
+- Feature gate ตามแผน Free/Pro/Business (ยังไม่ต่อ Stripe)
 
-## Deploy on Vercel
+Prototype เดิมถูกลบแล้ว · แผนงานอยู่ที่ `docs/PLAN.md`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## สคริปต์
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| คำสั่ง | ความหมาย |
+|--------|----------|
+| `npm run dev` | รัน dev server |
+| `npm run db:up` | เปิด Postgres |
+| `npm run db:migrate` | รัน migration |
+| `npm run build` | build production |
