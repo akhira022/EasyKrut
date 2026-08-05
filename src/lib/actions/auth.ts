@@ -111,11 +111,17 @@ export async function loginAction(
     return { ok: false, error: "กรุณากรอกอีเมลและรหัสผ่าน" };
   }
 
+  const callbackRaw = String(formData.get("callbackUrl") ?? "/dashboard");
+  const callbackUrl =
+    callbackRaw.startsWith("/") && !callbackRaw.startsWith("//")
+      ? callbackRaw
+      : "/dashboard";
+
   try {
     await signIn("credentials", {
       email: parsed.data.email.toLowerCase().trim(),
       password: parsed.data.password,
-      redirectTo: "/dashboard",
+      redirectTo: callbackUrl,
     });
   } catch (error) {
     if (error instanceof AuthError) {

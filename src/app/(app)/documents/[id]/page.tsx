@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { ExternalEditor } from "@/components/editor/ExternalEditor";
-import { parseExternalPayload } from "@/lib/documents/payload";
+import { InternalEditor } from "@/components/editor/InternalEditor";
+import { DocumentType } from "@/lib/constants";
+import { parseExternalPayload, parseInternalPayload } from "@/lib/documents/payload";
 import { prisma } from "@/lib/db";
 import { requireOrgContext } from "@/lib/org-context";
 
@@ -16,13 +18,23 @@ export default async function DocumentEditPage({
   });
   if (!doc) notFound();
 
-  const payload = parseExternalPayload(doc.payload);
+  const status = doc.status === "FINAL" ? "FINAL" : "DRAFT";
+
+  if (doc.type === DocumentType.INTERNAL) {
+    return (
+      <InternalEditor
+        documentId={doc.id}
+        initialStatus={status}
+        initialPayload={parseInternalPayload(doc.payload)}
+      />
+    );
+  }
 
   return (
     <ExternalEditor
       documentId={doc.id}
-      initialStatus={doc.status === "FINAL" ? "FINAL" : "DRAFT"}
-      initialPayload={payload}
+      initialStatus={status}
+      initialPayload={parseExternalPayload(doc.payload)}
     />
   );
 }

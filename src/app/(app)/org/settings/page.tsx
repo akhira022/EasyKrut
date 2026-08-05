@@ -3,15 +3,23 @@ import {
   inviteMemberAction,
   updateOrgTemplateAction,
 } from "@/lib/actions/org";
+import { BillingActions } from "@/components/billing/BillingActions";
 import { getPlan } from "@/lib/entitlements";
 import { prisma } from "@/lib/db";
 import { requireOrgContext } from "@/lib/org-context";
+import { isStripeConfigured } from "@/lib/stripe";
 import { InviteForm } from "./invite-form";
 import { TemplateForm } from "./template-form";
 
-export default async function OrgSettingsPage() {
+export default async function OrgSettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ billing?: string }>;
+}) {
   const ctx = await requireOrgContext();
+  const sp = await searchParams;
   const plan = getPlan(ctx.organization.planKey);
+  const stripeReady = isStripeConfigured();
   const canManage =
     ctx.membership.role === MembershipRole.OWNER ||
     ctx.membership.role === MembershipRole.ADMIN;
@@ -44,16 +52,31 @@ export default async function OrgSettingsPage() {
         </p>
       </div>
 
-      <section className="rounded-xl border border-[var(--border-color)] bg-white p-5 space-y-2">
+      {sp.billing === "success" ? (
+        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+          ชำระเงินสำเร็จแล้ว — แผนของคุณจะอัปเดตเมื่อ Stripe webhook ยืนยัน
+        </div>
+      ) : null}
+
+      <section className="rounded-xl border border-[var(--border-color)] bg-white p-5 space-y-3">
         <h2 className="font-medium">โควตาและการใช้งาน</h2>
         <p className="text-sm text-[var(--text-muted)]">
           สมาชิก {ctx.memberCount}/{ctx.organization.seatLimit} · เอกสารเดือนนี้{" "}
           {ctx.docsCreatedThisMonth}/{ctx.organization.docLimitMonthly} · Export{" "}
           {ctx.exportsThisMonth}
         </p>
-        <p className="text-xs text-[var(--text-muted)]">
-          Stripe ยังไม่เปิด — เมื่อชนลิมิตระบบจะบล็อกและแนะนำอัปเกรดตามแผนในหน้า Pricing
-        </p>
+        {canManage ? (
+          <BillingActions
+            stripeReady={stripeReady}
+            hasCustomer={Boolean(ctx.organization.stripeCustomerId)}
+          />
+        ) : null}
+        {!stripeReady ? (
+          <p className="text-xs text-[var(--text-muted)]">
+            Stripe ยังไม่เปิด — เมื่อชนลิมิตระบบจะบล็อกและแนะนำอัปเกรดตามแผนในหน้า
+            Pricing
+          </p>
+        ) : null}
       </section>
 
       <section className="rounded-xl border border-[var(--border-color)] bg-white p-5">
@@ -98,7 +121,9 @@ export default async function OrgSettingsPage() {
             <TemplateForm
               action={updateOrgTemplateAction}
               defaults={{
-                department: template?.department ?? "",
+                agencyName: template?.agencyName || template?.department || "",
+                agencyAddress: template?.agencyAddress ?? "",
+                contactUnit: template?.contactUnit ?? "",
                 docNumPrefix: template?.docNumPrefix ?? "",
                 tel: template?.tel ?? "",
                 fax: template?.fax ?? "",

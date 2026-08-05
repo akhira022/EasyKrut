@@ -202,6 +202,11 @@ a {
   font-family: inherit;
 }
 .field:focus { border-color: var(--primary-color); }
+textarea.field {
+  resize: vertical;
+  min-height: 2.6em;
+  line-height: 1.4;
+}
 
 .content-wrapper {
   display: flex;
@@ -288,6 +293,7 @@ a {
   background: white;
   color: black;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  position: relative;
 }
 .doc-a4-preview {
   aspect-ratio: 1 / 1.414;
@@ -295,7 +301,8 @@ a {
   padding: 8% 6%;
   font-size: 9px;
   line-height: 1.35;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 .doc-a4-print {
   width: 21cm;
@@ -305,54 +312,203 @@ a {
   line-height: 1.15;
   box-sizing: border-box;
 }
-.doc-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: -0.8cm;
-}
-.doc-header-side {
-  flex: 1;
-  padding-top: 1.1cm;
+.doc-urgency {
+  color: #c00;
+  font-weight: 700;
+  margin-bottom: 0.3cm;
   line-height: 1.1;
 }
-.doc-header-right { text-align: right; }
-.doc-header-garuda { flex: 0; }
+.doc-a4-preview .doc-urgency { font-size: 14px; }
+.doc-a4-print .doc-urgency { font-size: 32pt; }
+/* ตาม docs/1703073586.webp: ครุฑกึ่งกลาง, ที่เท้าครุฑซ้าย, ส่วนราชการขวาครุฑ ~65% ชิดซ้าย */
+.doc-header {
+  position: relative;
+  min-height: 3cm;
+  margin-bottom: 0.15cm;
+}
+.doc-header-garuda {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  z-index: 1;
+  pointer-events: none;
+}
 .doc-header-garuda img {
   height: 3cm;
   width: auto;
   object-fit: contain;
+  display: block;
 }
+/* "ที่" ชิดซ้าย ระดับเท้าครุฑ */
+.doc-header-left {
+  position: absolute;
+  left: 0;
+  top: 2.15cm;
+  line-height: 1.15;
+  z-index: 2;
+  max-width: 38%;
+}
+/* ส่วนราชการข้างครุฑ — ขอบซ้ายบล็อก ~65% ของกล่องเนื้อหา ชิดซ้ายทุกบรรทัด */
+.doc-header-right {
+  position: absolute;
+  left: 65%;
+  right: 0;
+  top: 0.85cm;
+  line-height: 1.25;
+  text-align: left;
+  z-index: 2;
+}
+.doc-agency-address { margin-top: 0; }
+.doc-a4-preview .doc-header { min-height: 1.45cm; }
 .doc-a4-preview .doc-header-garuda img { height: 1.4cm; }
-.doc-a4-preview .doc-header-side { padding-top: 0.55cm; }
+.doc-a4-preview .doc-header-left { top: 1cm; max-width: 40%; }
+.doc-a4-preview .doc-header-right { left: 62%; top: 0.4cm; }
+/* วันเดือนปี เริ่มกึ่งกลางหน้า (ไม่ใช่ขอบส่วนราชการ) */
 .doc-date {
   margin-left: 50%;
-  margin-top: 1cm;
-  margin-bottom: 16px;
+  margin-top: 0.45cm;
+  margin-bottom: 12px;
   text-align: left;
 }
-.doc-meta { margin-bottom: 8px; }
+.doc-a4-preview .doc-date {
+  margin-top: 0.28cm;
+  margin-bottom: 8px;
+}
+.doc-meta {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+  margin-bottom: 8px;
+}
+.doc-meta-label {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.doc-meta-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: pre-line;
+}
+.doc-meta-stacked {
+  display: block;
+}
+.doc-meta-stacked .doc-meta-label { display: inline; }
 .doc-meta-last { margin-bottom: 15px; }
-.doc-body { margin-top: 16px; margin-bottom: 32px; }
+.doc-meta-list {
+  margin: 4px 0 0 1.5em;
+  padding: 0;
+  list-style: decimal;
+}
+.doc-body { margin-top: 12px; margin-bottom: 14px; }
+.doc-a4-preview .doc-body { margin-top: 8px; margin-bottom: 10px; }
 .doc-paragraph {
   text-indent: 2.5cm;
   text-align: justify;
-  text-justify: inter-word;
-  margin: 0 0 12px;
-  line-height: 1.6;
+  text-justify: inter-character;
+  margin: 0 0 0.45em;
+  line-height: 1.35;
+  word-break: normal;
+  overflow-wrap: anywhere;
 }
-.doc-a4-preview .doc-paragraph { text-indent: 1.2cm; }
-.doc-signature {
-  margin-left: 50%;
-  display: inline-block;
-  text-align: center;
-}
-.doc-closing { text-align: left; margin-bottom: 40px; }
-.doc-sign-line { margin-bottom: 8px; }
-.doc-contact {
-  margin-top: 48px;
-  font-size: 0.95em;
+.doc-a4-preview .doc-paragraph {
+  text-indent: 1.2cm;
+  margin-bottom: 6px;
   line-height: 1.4;
+}
+.doc-a4-print .doc-paragraph {
+  text-indent: 2.5cm;
+  margin-bottom: 0.35em;
+  line-height: 1.25;
+}
+/* คำลงท้ายเริ่มใกล้กึ่งกลาง; ชื่อ/ตำแหน่งจัดกึ่งกลางใต้คำลงท้าย */
+.doc-signature {
+  margin-left: 45%;
+  width: 55%;
+  box-sizing: border-box;
+  text-align: center;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.doc-closing {
+  text-align: left;
+  margin-left: calc(50% - 45%); /* ชิดแกนเดียวกับวันเดือนปี (~50%) */
+  margin-bottom: 0.35cm;
+}
+.doc-sign-space {
+  height: 1.5cm;
+  margin-bottom: 0.15cm;
+}
+.doc-a4-preview .doc-sign-space { height: 0.75cm; }
+.doc-a4-print .doc-sign-space { height: 1.5cm; }
+.doc-sign-name,
+.doc-sign-position {
+  white-space: pre-line;
+}
+.doc-contact {
+  clear: both;
+  margin-top: 0.7cm;
+  font-size: 0.95em;
+  line-height: 1.3;
+  page-break-inside: avoid;
+  break-inside: avoid;
+  page-break-before: avoid;
+}
+.doc-a4-preview .doc-contact {
+  margin-top: 10px;
+  padding-bottom: 4px;
+}
+.doc-a4-print .doc-meta { margin-bottom: 4px; }
+.doc-a4-print .doc-meta-last { margin-bottom: 8px; }
+.doc-a4-print .doc-date { margin-top: 0.35cm; margin-bottom: 8px; }
+.doc-a4-print .doc-body { margin-top: 8px; margin-bottom: 10px; }
+.doc-a4-print .doc-closing-block {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.doc-cc { margin-top: 0.6em; }
+.doc-memo-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6cm;
+  margin-bottom: 0.6cm;
+}
+.doc-memo-garuda img {
+  height: 1.6cm;
+  width: auto;
+  display: block;
+}
+.doc-a4-preview .doc-memo-garuda img { height: 0.9cm; }
+.doc-memo-title {
+  font-size: 1.35em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.doc-memo-meta {
+  margin-bottom: 10px;
+  line-height: 1.45;
+}
+.doc-memo-meta > div { margin-bottom: 4px; }
+.doc-memo-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2cm;
+}
+.list-field-row .field { flex: 1; margin-bottom: 0; }
+.char-count {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.char-count-warn { color: #b45309; }
+.char-budget-banner {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #92400e;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 6px;
+  padding: 8px 10px;
 }
 
 .zoom-modal {
@@ -415,6 +571,29 @@ a {
   .preview-section { position: static; width: 100%; }
   .preview-frame { max-width: 100%; }
   .hidden.sm\:flex { display: none; }
+  .mobile-editor-tabs {
+    display: flex;
+    gap: 8px;
+  }
+  .mobile-editor-tabs button {
+    flex: 1;
+    border: 1px solid var(--border-color);
+    background: white;
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+  }
+  .mobile-editor-tabs button.active {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: #f3f1ff;
+  }
+  .mobile-tab-form .editor-preview-panel { display: none; }
+  .mobile-tab-preview .editor-form-panel { display: none; }
+}
+
+@media (min-width: 961px) {
+  .mobile-editor-tabs { display: none; }
 }
 
 @media (min-width: 640px) {

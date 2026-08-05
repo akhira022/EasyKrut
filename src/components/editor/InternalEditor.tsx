@@ -3,27 +3,28 @@
 import { useEffect, useEffectEvent, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { ExternalLetterPayload, Urgency } from "@/lib/documents/external/schema";
+import type { Urgency } from "@/lib/documents/external/schema";
+import type { InternalLetterPayload } from "@/lib/documents/internal/schema";
 import {
   DOC_SOFT_LIMITS,
   bodyTotalChars,
   countChars,
   overSoftLimit,
 } from "@/lib/documents/limits";
-import { ExternalLetterPreview } from "@/components/documents/ExternalLetterPreview";
-import { duplicateDocumentAction, saveDocumentAction } from "@/lib/actions/documents";
+import { InternalLetterPreview } from "@/components/documents/InternalLetterPreview";
+import { duplicateDocumentAction, saveInternalDocumentAction } from "@/lib/actions/documents";
 
 type Props = {
   documentId: string;
   initialStatus: "DRAFT" | "FINAL";
-  initialPayload: ExternalLetterPayload;
+  initialPayload: InternalLetterPayload;
 };
 
 const AUTOSAVE_MS = 20_000;
 
-export function ExternalEditor({ documentId, initialStatus, initialPayload }: Props) {
+export function InternalEditor({ documentId, initialStatus, initialPayload }: Props) {
   const router = useRouter();
-  const [payload, setPayload] = useState<ExternalLetterPayload>(initialPayload);
+  const [payload, setPayload] = useState<InternalLetterPayload>(initialPayload);
   const [status, setStatus] = useState<"DRAFT" | "FINAL">(initialStatus);
   const [message, setMessage] = useState<string | null>(null);
   const [zoomOpen, setZoomOpen] = useState(false);
@@ -33,7 +34,7 @@ export function ExternalEditor({ documentId, initialStatus, initialPayload }: Pr
   const savingRef = useRef(false);
 
   const title = useMemo(
-    () => payload.subject.trim() || "หนังสือภายนอก",
+    () => payload.subject.trim() || "หนังสือภายใน",
     [payload.subject],
   );
 
@@ -47,9 +48,9 @@ export function ExternalEditor({ documentId, initialStatus, initialPayload }: Pr
     dirtyRef.current = true;
   }
 
-  function update<K extends keyof ExternalLetterPayload>(
+  function update<K extends keyof InternalLetterPayload>(
     key: K,
-    value: ExternalLetterPayload[K],
+    value: InternalLetterPayload[K],
   ) {
     setPayload((prev) => ({ ...prev, [key]: value }));
     markDirty();
@@ -85,7 +86,7 @@ export function ExternalEditor({ documentId, initialStatus, initialPayload }: Pr
     if (savingRef.current) return false;
     savingRef.current = true;
     try {
-      const result = await saveDocumentAction({
+      const result = await saveInternalDocumentAction({
         id: documentId,
         status,
         payload,
@@ -146,7 +147,7 @@ export function ExternalEditor({ documentId, initialStatus, initialPayload }: Pr
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm text-[var(--text-muted)]">กำลังแก้ไข</p>
-          <h1 className="text-xl font-medium text-[var(--text-main)]">{title}</h1>
+          <h1 className="text-xl font-medium">{title}</h1>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/documents" className="btn-text">
@@ -210,13 +211,13 @@ export function ExternalEditor({ documentId, initialStatus, initialPayload }: Pr
           </select>
         </label>
         <span className="text-sm text-[var(--text-muted)]">
-          ประเภท: หนังสือภายนอก (แบบที่ 1 ตามระเบียบสารบรรณ)
+          ประเภท: หนังสือภายใน (บันทึกข้อความ)
         </span>
       </div>
 
       <div className={`content-wrapper mobile-tab-${mobileTab}`}>
         <section className="form-section editor-form-panel">
-          <h2>กรอกข้อมูลสำหรับหนังสือภายนอก</h2>
+          <h2>กรอกข้อมูลบันทึกข้อความ</h2>
 
           <div className="form-group">
             <label>ชั้นความเร็ว</label>
@@ -233,25 +234,32 @@ export function ExternalEditor({ documentId, initialStatus, initialPayload }: Pr
           </div>
 
           <div className="form-group">
-            <label>ส่วนราชการเจ้าของหนังสือ</label>
-            <textarea
+            <label>ส่วนราชการ</label>
+            <input
               className="field"
-              rows={2}
               value={payload.agencyName}
               onChange={(e) => update("agencyName", e.target.value)}
-              placeholder={"เช่น กรมชลประทาน\nสำนักงานชลประทานที่ ๑๕"}
             />
           </div>
 
-          <div className="form-group">
-            <label>ที่ตั้ง</label>
-            <textarea
-              className="field"
-              rows={2}
-              value={payload.agencyAddress}
-              onChange={(e) => update("agencyAddress", e.target.value)}
-              placeholder={"เช่น ตำบล… อำเภอ…\nจังหวัด… รหัสไปรษณีย์"}
-            />
+          <div className="form-row">
+            <div className="form-group">
+              <label>ที่</label>
+              <input
+                className="field"
+                value={payload.docNum}
+                onChange={(e) => update("docNum", e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>วันที่</label>
+              <input
+                className="field"
+                type="date"
+                value={payload.date}
+                onChange={(e) => update("date", e.target.value)}
+              />
+            </div>
           </div>
 
           <div className="form-group">
@@ -272,33 +280,13 @@ export function ExternalEditor({ documentId, initialStatus, initialPayload }: Pr
           </div>
 
           <div className="form-row">
-            <div className="form-group">
-              <label>วัน เดือน ปี ที่ออก</label>
-              <input
-                className="field"
-                type="date"
-                value={payload.date}
-                onChange={(e) => update("date", e.target.value)}
-              />
-            </div>
-            <div className="form-group">
-              <label>เลขที่หนังสือออก</label>
-              <input
-                className="field"
-                value={payload.docNum}
-                onChange={(e) => update("docNum", e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="form-row">
             <div className="form-group" style={{ flex: 0.5 }}>
               <label>คำขึ้นต้น</label>
               <select
                 className="field"
                 value={payload.salutation}
                 onChange={(e) =>
-                  update("salutation", e.target.value as ExternalLetterPayload["salutation"])
+                  update("salutation", e.target.value as InternalLetterPayload["salutation"])
                 }
               >
                 <option value="เรียน">เรียน</option>
@@ -306,15 +294,24 @@ export function ExternalEditor({ documentId, initialStatus, initialPayload }: Pr
               </select>
             </div>
             <div className="form-group" style={{ flex: 1.5 }}>
-              <label>ถึง (ตำแหน่งหรือชื่อผู้รับ)</label>
+              <label>ถึง</label>
               <textarea
                 className="field"
                 rows={2}
                 value={payload.receiver}
                 onChange={(e) => update("receiver", e.target.value)}
-                placeholder={"เช่น คุณจักรพงศ์ กุดเสนา\nหัวหน้ากลุ่มงาน…"}
               />
             </div>
+          </div>
+
+          <div className="form-group">
+            <label>จาก</label>
+            <input
+              className="field"
+              value={payload.from}
+              onChange={(e) => update("from", e.target.value)}
+              placeholder="ถ้ามี"
+            />
           </div>
 
           <div className="form-group">
@@ -325,7 +322,6 @@ export function ExternalEditor({ documentId, initialStatus, initialPayload }: Pr
                   className="field"
                   value={item}
                   onChange={(e) => updateListItem("references", i, e.target.value)}
-                  placeholder="ส่วนราชการ ที่ … ลงวันที่ …"
                 />
                 {payload.references.length > 1 ? (
                   <button
@@ -408,11 +404,12 @@ export function ExternalEditor({ documentId, initialStatus, initialPayload }: Pr
               className="field"
               value={payload.closing}
               onChange={(e) =>
-                update("closing", e.target.value as ExternalLetterPayload["closing"])
+                update("closing", e.target.value as InternalLetterPayload["closing"])
               }
             >
-              <option value="ขอแสดงความนับถือ">ขอแสดงความนับถือ</option>
-              <option value="ขอแสดงความเคารพอย่างยิ่ง">ขอแสดงความเคารพอย่างยิ่ง</option>
+              <option value="จึงเรียนมาเพื่อโปรดทราบ">จึงเรียนมาเพื่อโปรดทราบ</option>
+              <option value="จึงเรียนมาเพื่อโปรดพิจารณา">จึงเรียนมาเพื่อโปรดพิจารณา</option>
+              <option value="จึงเรียนมาเพื่อโปรดดำเนินการ">จึงเรียนมาเพื่อโปรดดำเนินการ</option>
             </select>
           </div>
 
@@ -423,7 +420,6 @@ export function ExternalEditor({ documentId, initialStatus, initialPayload }: Pr
                 className="field"
                 value={payload.signName}
                 onChange={(e) => update("signName", e.target.value)}
-                placeholder="ชื่อ-นามสกุล (จะแสดงในวงเล็บ)"
               />
             </div>
             <div className="form-group">
@@ -433,55 +429,6 @@ export function ExternalEditor({ documentId, initialStatus, initialPayload }: Pr
                 rows={2}
                 value={payload.position}
                 onChange={(e) => update("position", e.target.value)}
-                placeholder={"เช่น คณบดีคณะ…\nปฏิบัติราชการแทน อธิการบดี…"}
-              />
-            </div>
-          </div>
-
-          <div className="contact-info-section">
-            <h3>ส่วนราชการเจ้าของเรื่องและข้อมูลติดต่อ</h3>
-            <div className="form-group">
-              <label>ส่วนราชการเจ้าของเรื่อง</label>
-              <input
-                className="field"
-                value={payload.contactUnit}
-                onChange={(e) => update("contactUnit", e.target.value)}
-              />
-            </div>
-            <div className="form-row">
-              <div className="form-group">
-                <label>โทร.</label>
-                <input
-                  className="field"
-                  value={payload.tel}
-                  onChange={(e) => update("tel", e.target.value)}
-                />
-              </div>
-              <div className="form-group">
-                <label>โทรสาร</label>
-                <input
-                  className="field"
-                  value={payload.fax}
-                  onChange={(e) => update("fax", e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="form-group">
-              <label>ไปรษณีย์อิเล็กทรอนิกส์</label>
-              <input
-                className="field"
-                type="email"
-                value={payload.email}
-                onChange={(e) => update("email", e.target.value)}
-              />
-            </div>
-            <div className="form-group">
-              <label>สำเนาส่ง</label>
-              <input
-                className="field"
-                value={payload.cc}
-                onChange={(e) => update("cc", e.target.value)}
-                placeholder="ถ้ามี — ชื่อส่วนราชการหรือบุคคล"
               />
             </div>
           </div>
@@ -490,7 +437,7 @@ export function ExternalEditor({ documentId, initialStatus, initialPayload }: Pr
         <aside className="preview-section editor-preview-panel">
           <div className="preview-label">พรีวิวสด</div>
           <div className="preview-frame">
-            <ExternalLetterPreview data={payload} />
+            <InternalLetterPreview data={payload} />
           </div>
         </aside>
       </div>
@@ -500,7 +447,7 @@ export function ExternalEditor({ documentId, initialStatus, initialPayload }: Pr
           <button type="button" className="zoom-close" onClick={() => setZoomOpen(false)}>
             ปิด
           </button>
-          <ExternalLetterPreview data={payload} printMode />
+          <InternalLetterPreview data={payload} printMode />
         </div>
       ) : null}
     </div>

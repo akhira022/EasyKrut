@@ -129,7 +129,10 @@ model UsageMeter {
 model OrgTemplate {
   id             String       @id @default(cuid())
   organizationId String       @unique
-  department     String       @default("")
+  department     String       @default("") // legacy; prefer agencyName
+  agencyName     String       @default("")
+  agencyAddress  String       @default("")
+  contactUnit    String       @default("")
   docNumPrefix   String       @default("")
   tel            String       @default("")
   fax            String       @default("")

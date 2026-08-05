@@ -15,7 +15,7 @@ export async function getActiveMembership(userId: string) {
   const membership = await prisma.membership.findFirst({
     where: { userId },
     include: { organization: true },
-    orderBy: { createdAt: "asc" },
+    orderBy: { createdAt: "desc" },
   });
   return membership;
 }

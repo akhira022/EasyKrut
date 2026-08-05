@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildExternalDocx } from "@/lib/documents/external/docx";
-import { parseExternalPayload } from "@/lib/documents/payload";
+import { buildInternalDocx } from "@/lib/documents/internal/docx";
+import { DocumentType } from "@/lib/constants";
+import { parseExternalPayload, parseInternalPayload } from "@/lib/documents/payload";
 import { canExportWord } from "@/lib/entitlements";
 import { prisma } from "@/lib/db";
 import { requireOrgContext } from "@/lib/org-context";
@@ -26,8 +28,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "not found" }, { status: 404 });
     }
 
-    const payload = parseExternalPayload(doc.payload);
-    const buffer = await buildExternalDocx(payload);
+    const buffer =
+      doc.type === DocumentType.INTERNAL
+        ? await buildInternalDocx(parseInternalPayload(doc.payload))
+        : await buildExternalDocx(parseExternalPayload(doc.payload));
 
     const yearMonth = currentYearMonth();
     await prisma.usageMeter.upsert({

@@ -2,9 +2,13 @@
 
 import { MembershipRole } from "@/lib/constants";
 import { nanoid } from "nanoid";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { canInviteMember } from "@/lib/entitlements";
+import { appBaseUrl, sendMail } from "@/lib/mail";
 import { requireOrgContext } from "@/lib/org-context";
 import type { ActionResult } from "@/lib/actions/auth";
 
@@ -53,6 +57,18 @@ export async function inviteMemberAction(
       return { ok: false, error: "ผู้ใช้นี้อยู่ในหน่วยงานแล้ว" };
     }
 
+    const pendingInvite = await prisma.invitation.findFirst({
+      where: {
+        organizationId: ctx.organization.id,
+        email,
+        acceptedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+    });
+    if (pendingInvite) {
+      return { ok: false, error: "มีคำเชิญค้างสำหรับอีเมลนี้แล้ว" };
+    }
+
     const token = nanoid(32);
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
@@ -67,9 +83,25 @@ export async function inviteMemberAction(
       },
     });
 
+    const inviteUrl = `${appBaseUrl()}/invite/${token}`;
+    await sendMail({
+      to: email,
+      subject: `คำเชิญเข้าร่วม ${ctx.organization.name}`,
+      text: [
+        `คุณได้รับคำเชิญเข้าร่วมหน่วยงาน ${ctx.organization.name}`,
+        "",
+        "เปิดลิงก์นี้เพื่อรับคำเชิญ:",
+        inviteUrl,
+        "",
+        "ลิงก์หมดอายุใน 7 วัน",
+      ].join("\n"),
+    });
+
+    revalidatePath("/org/settings");
+
     return {
       ok: true,
-      message: `สร้างคำเชิญแล้ว — ลิงก์: /invite/${token}`,
+      message: `สร้างคำเชิญแล้ว — ลิงก์: ${inviteUrl}`,
     };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "ERROR";
@@ -84,6 +116,25 @@ const acceptSchema = z.object({
   name: z.string().min(2),
   password: z.string().min(6),
 });
+
+async function seatGateForOrg(organizationId: string) {
+  const org = await prisma.organization.findUnique({
+    where: { id: organizationId },
+  });
+  if (!org) {
+    return { ok: false as const, reason: "ไม่พบหน่วยงาน" };
+  }
+  const memberCount = await prisma.membership.count({
+    where: { organizationId },
+  });
+  return canInviteMember({
+    planKey: org.planKey,
+    seatLimit: org.seatLimit,
+    docLimitMonthly: org.docLimitMonthly,
+    memberCount,
+    docsCreatedThisMonth: 0,
+  });
+}
 
 export async function acceptInviteRegisterAction(
   _prev: ActionResult | null,
@@ -117,6 +168,11 @@ export async function acceptInviteRegisterAction(
       ok: false,
       error: "มีบัญชีนี้อยู่แล้ว — เข้าสู่ระบบแล้วเปิดลิงก์เชิญอีกครั้ง",
     };
+  }
+
+  const gate = await seatGateForOrg(invitation.organizationId);
+  if (!gate.ok) {
+    return { ok: false, error: gate.reason };
   }
 
   const passwordHash = await hash(parsed.data.password, 10);
@@ -158,8 +214,83 @@ export async function acceptInviteRegisterAction(
   return { ok: true };
 }
 
+const acceptLoggedInSchema = z.object({
+  token: z.string().min(10),
+});
+
+export async function acceptInviteLoggedInAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user?.id || !session.user.email) {
+    return { ok: false, error: "กรุณาเข้าสู่ระบบ" };
+  }
+
+  const parsed = acceptLoggedInSchema.safeParse({
+    token: formData.get("token"),
+  });
+  if (!parsed.success) {
+    return { ok: false, error: "คำเชิญไม่ถูกต้อง" };
+  }
+
+  const invitation = await prisma.invitation.findUnique({
+    where: { token: parsed.data.token },
+  });
+  if (!invitation || invitation.acceptedAt || invitation.expiresAt < new Date()) {
+    return { ok: false, error: "คำเชิญหมดอายุหรือไม่ถูกต้อง" };
+  }
+
+  const sessionEmail = session.user.email.toLowerCase().trim();
+  if (sessionEmail !== invitation.email.toLowerCase().trim()) {
+    return { ok: false, error: "อีเมลในบัญชีไม่ตรงกับคำเชิญ" };
+  }
+
+  const existingMember = await prisma.membership.findUnique({
+    where: {
+      userId_organizationId: {
+        userId: session.user.id,
+        organizationId: invitation.organizationId,
+      },
+    },
+  });
+  if (existingMember) {
+    await prisma.invitation.update({
+      where: { id: invitation.id },
+      data: { acceptedAt: new Date() },
+    });
+    revalidatePath("/dashboard");
+    redirect("/dashboard");
+  }
+
+  const gate = await seatGateForOrg(invitation.organizationId);
+  if (!gate.ok) {
+    return { ok: false, error: gate.reason };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.membership.create({
+      data: {
+        userId: session.user.id,
+        organizationId: invitation.organizationId,
+        role: invitation.role,
+      },
+    });
+    await tx.invitation.update({
+      where: { id: invitation.id },
+      data: { acceptedAt: new Date() },
+    });
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/org/settings");
+  redirect("/dashboard");
+}
+
 const templateSchema = z.object({
-  department: z.string(),
+  agencyName: z.string(),
+  agencyAddress: z.string(),
+  contactUnit: z.string(),
   docNumPrefix: z.string(),
   tel: z.string(),
   fax: z.string(),
@@ -176,7 +307,9 @@ export async function updateOrgTemplateAction(
       MembershipRole.ADMIN,
     ]);
     const parsed = templateSchema.safeParse({
-      department: formData.get("department") ?? "",
+      agencyName: formData.get("agencyName") ?? "",
+      agencyAddress: formData.get("agencyAddress") ?? "",
+      contactUnit: formData.get("contactUnit") ?? "",
       docNumPrefix: formData.get("docNumPrefix") ?? "",
       tel: formData.get("tel") ?? "",
       fax: formData.get("fax") ?? "",
@@ -186,10 +319,16 @@ export async function updateOrgTemplateAction(
       return { ok: false, error: "ข้อมูลไม่ถูกต้อง" };
     }
 
+    const data = {
+      ...parsed.data,
+      // Keep legacy column in sync for older rows / tooling
+      department: parsed.data.agencyName,
+    };
+
     await prisma.orgTemplate.upsert({
       where: { organizationId: ctx.organization.id },
-      create: { organizationId: ctx.organization.id, ...parsed.data },
-      update: parsed.data,
+      create: { organizationId: ctx.organization.id, ...data },
+      update: data,
     });
 
     return { ok: true };

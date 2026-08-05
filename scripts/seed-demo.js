@@ -26,6 +26,9 @@ async function main() {
         template: {
           create: {
             department: "กระทรวงตัวอย่าง",
+            agencyName: "กระทรวงตัวอย่าง",
+            agencyAddress: "ถนนตัวอย่าง กรุงเทพฯ ๑๐๒๐๐",
+            contactUnit: "กองตัวอย่าง",
             docNumPrefix: "ตย ๐๐๑/",
           },
         },
