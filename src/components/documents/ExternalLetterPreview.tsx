@@ -23,8 +23,8 @@ function MetaRow({
 }) {
   if (!value.trim()) return null;
   return (
-    <div className={`doc-meta ${className}`.trim()}>
-      <strong className="doc-meta-label">{label}</strong>
+    <div className={`doc-meta mt-[6pt] ${className}`.trim()}>
+      <span className="doc-meta-label font-normal">{label}</span>
       <span className="doc-meta-value">{value}</span>
     </div>
   );
@@ -44,8 +44,8 @@ function MetaList({
     return <MetaRow label={label} value={items[0]!} className={className} />;
   }
   return (
-    <div className={`doc-meta doc-meta-stacked ${className}`.trim()}>
-      <strong className="doc-meta-label">{label}</strong>
+    <div className={`doc-meta doc-meta-stacked mt-[6pt] ${className}`.trim()}>
+      <span className="doc-meta-label font-normal">{label}</span>
       <ol className="doc-meta-list">
         {items.map((item, i) => (
           <li key={i}>{item}</li>
@@ -91,25 +91,31 @@ export function ExternalLetterPreview({ data, className = "", printMode }: Props
 
   return (
     <article
-      className={`doc-a4 font-sarabun text-black ${printMode ? "doc-a4-print" : "doc-a4-preview"} ${className}`}
+      className={`doc-a4 font-sarabun text-black pt-[2.5cm] pr-[2cm] pb-[2cm] pl-[3cm] ${printMode ? "doc-a4-print" : "doc-a4-preview"} ${className}`}
     >
-      {data.urgency ? (
-        <div className="doc-urgency">{data.urgency}</div>
-      ) : null}
-
       <div className="doc-header">
-        <div className="doc-header-left">ที่ {docnum}</div>
+        <div className="doc-header-left">
+          {data.urgency ? (
+            <div className="doc-urgency text-left">{data.urgency}</div>
+          ) : (
+            <div className="doc-urgency-spacer" aria-hidden="true" />
+          )}
+          <div className="doc-docnum">ที่ {docnum}</div>
+        </div>
         <div className="doc-header-garuda">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/krut.png" alt="ตราครุฑ" />
         </div>
         <div className="doc-header-right">
-          <AgencyLines text={agencyName} />
-          <AgencyLines text={agencyAddress} className="doc-agency-address" />
+          <div className="doc-urgency-spacer" aria-hidden="true" />
+          <AgencyLines text={agencyName} className="doc-agency-name" />
         </div>
       </div>
+      <AgencyLines text={agencyAddress} className="doc-agency-address" />
 
-      {date ? <div className="doc-date">{date}</div> : null}
+      {date ? (
+        <div className="doc-date ml-[50%] text-left mt-[6pt]">{date}</div>
+      ) : null}
 
       <MetaRow label="เรื่อง" value={subject} />
       <MetaRow label={data.salutation} value={receiver} />
@@ -126,18 +132,22 @@ export function ExternalLetterPreview({ data, className = "", printMode }: Props
 
       <div className="doc-body">
         {paragraphs.map((p, i) => (
-          <p key={i} className="doc-paragraph">
-            {p}
-          </p>
+          <div key={i} className="doc-para-block">
+            <p className="doc-paragraph indent-[2.5cm]">{p}</p>
+          </div>
         ))}
       </div>
 
       <div className="doc-closing-block">
-        <div className="doc-signature">
-          <div className="doc-closing">{data.closing}</div>
+        <div className="doc-signature ml-[50%] w-1/2 text-left mt-[12pt]">
+          <div className="doc-closing text-left">{data.closing}</div>
           <div className="doc-sign-space" aria-hidden="true" />
-          {signName ? <div className="doc-sign-name">({signName})</div> : null}
-          {position ? <div className="doc-sign-position">{position}</div> : null}
+          {signName || position ? (
+            <div className="doc-sign-identity">
+              {signName ? <div className="doc-sign-name text-center">({signName})</div> : null}
+              {position ? <div className="doc-sign-position text-center">{position}</div> : null}
+            </div>
+          ) : null}
         </div>
 
         <div className="doc-contact">

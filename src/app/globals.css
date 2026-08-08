@@ -294,11 +294,25 @@ textarea.field {
   color: black;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   position: relative;
+  box-sizing: border-box;
 }
+/* ขอบมาตรฐาน: บน 2.5 / ขวา 2 / ล่าง 2 / ซ้าย 3 ซม. */
+.pt-\[2\.5cm\] { padding-top: 2.5cm; }
+.pr-\[2cm\] { padding-right: 2cm; }
+.pb-\[2cm\] { padding-bottom: 2cm; }
+.pl-\[3cm\] { padding-left: 3cm; }
+.ml-\[50\%\] { margin-left: 50%; }
+.mt-\[6pt\] { margin-top: 6pt; }
+.mt-\[12pt\] { margin-top: 12pt; }
+.indent-\[2\.5cm\] { text-indent: 2.5cm; }
+.w-1\/2 { width: 50%; }
+.text-left { text-align: left; }
+
 .doc-a4-preview {
   aspect-ratio: 1 / 1.414;
   width: 100%;
-  padding: 8% 6%;
+  /* พรีวิวคงสัดส่วนขอบเดียวกับพิมพ์ */
+  padding: 8.4% 9.5% 6.7% 14.3% !important; /* 2.5/21 ≈ top, 2/21 right, 2/29.7 bottom, 3/21 left */
   font-size: 9px;
   line-height: 1.35;
   overflow-x: hidden;
@@ -306,32 +320,55 @@ textarea.field {
 }
 .doc-a4-print {
   width: 21cm;
-  min-height: 29.7cm;
-  padding: 3cm 2cm 2cm 3cm;
+  padding: 2.5cm 2cm 2cm 3cm !important;
   font-size: 16pt;
   line-height: 1.15;
   box-sizing: border-box;
 }
+/* ความสูง A4 เฉพาะบนจอ — ห้ามบังคับตอนพิมพ์ (ทำให้ตัดหน้าแปลก) */
+@media screen {
+  .doc-a4-print {
+    min-height: 29.7cm;
+  }
+}
+/* ชั้นความเร็ว — อยู่ในคอลัมน์เดียวกับ "ที่" จึงชิดซ้ายแกนเดียวกัน */
 .doc-urgency {
   color: #c00;
   font-weight: 700;
-  margin-bottom: 0.3cm;
-  line-height: 1.1;
+  text-align: left;
+  margin: 0;
+  padding: 0;
+  text-indent: 0;
+  line-height: 1.2;
+  align-self: flex-start;
 }
-.doc-a4-preview .doc-urgency { font-size: 14px; }
-.doc-a4-print .doc-urgency { font-size: 32pt; }
-/* ตาม docs/1703073586.webp: ครุฑกึ่งกลาง, ที่เท้าครุฑซ้าย, ส่วนราชการขวาครุฑ ~65% ชิดซ้าย */
+.doc-urgency-spacer {
+  /* สำรองความสูงชั้นความเร็ว เพื่อให้ "ที่" กับส่วนราชการอยู่บรรทัดเดียวกัน */
+  min-height: 1.2em;
+  visibility: hidden;
+  pointer-events: none;
+}
+.doc-a4-preview .doc-urgency { font-size: 11px; }
+.doc-a4-preview .doc-urgency-spacer { min-height: 1.2em; }
+.doc-a4-print .doc-urgency { font-size: 18pt; }
+.doc-a4-print .doc-urgency-spacer { min-height: 1.35em; }
+
+/* ครุฑกึ่งกลางสูง 3 ซม. · ที่/ส่วนราชการ baseline เดียวกัน */
 .doc-header {
+  display: grid;
+  grid-template-columns: 1fr 3cm 1fr;
+  align-items: start; /* items-start — จัดจากบนครุฑ */
+  column-gap: 0;
   position: relative;
   min-height: 3cm;
-  margin-bottom: 0.15cm;
+  margin-bottom: 0;
 }
 .doc-header-garuda {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  transform: translateX(-50%);
-  z-index: 1;
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+  align-self: start;
+  z-index: 3;
   pointer-events: none;
 }
 .doc-header-garuda img {
@@ -340,50 +377,86 @@ textarea.field {
   object-fit: contain;
   display: block;
 }
-/* "ที่" ชิดซ้าย ระดับเท้าครุฑ */
+/* คอลัมน์ซ้าย: ชั้นความเร็ว บนสุด · "ที่" ชิดเท้า — ขอบซ้ายเดียวกับเนื้อหา */
 .doc-header-left {
-  position: absolute;
-  left: 0;
-  top: 2.15cm;
-  line-height: 1.15;
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start; /* ชิดซ้าย — แกนเดียวกับชั้นความเร็ว */
+  align-self: stretch;
+  min-height: 3cm;
+  margin: 0;
+  padding: 0;
+  line-height: 1.2;
   z-index: 2;
-  max-width: 38%;
 }
-/* ส่วนราชการข้างครุฑ — ขอบซ้ายบล็อก ~65% ของกล่องเนื้อหา ชิดซ้ายทุกบรรทัด */
+.doc-docnum {
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  text-indent: 0;
+}
+/* คอลัมน์ขวา: spacer เท่าชั้นความเร็ว · ส่วนราชการ baseline เดียวกับ "ที่" */
 .doc-header-right {
-  position: absolute;
-  left: 65%;
-  right: 0;
-  top: 0.85cm;
-  line-height: 1.25;
+  grid-column: 3;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  align-self: stretch;
+  min-height: 3cm;
+  margin: 0;
+  padding: 0;
+  line-height: 1.2;
   text-align: left;
   z-index: 2;
 }
-.doc-agency-address { margin-top: 0; }
-.doc-a4-preview .doc-header { min-height: 1.45cm; }
-.doc-a4-preview .doc-header-garuda img { height: 1.4cm; }
-.doc-a4-preview .doc-header-left { top: 1cm; max-width: 40%; }
-.doc-a4-preview .doc-header-right { left: 62%; top: 0.4cm; }
-/* วันเดือนปี เริ่มกึ่งกลางหน้า (ไม่ใช่ขอบส่วนราชการ) */
+.doc-agency-name {
+  margin: 0;
+  padding: 0;
+}
+/* [3] ที่ตั้ง — ชิดคอลัมน์ส่วนราชการ (หลังครุฑ) */
+.doc-agency-address {
+  margin-left: calc(50% + 1.5cm);
+  margin-top: 6pt;
+  margin-bottom: 0;
+  line-height: 1.2;
+}
+.doc-a4-preview .doc-header {
+  min-height: 1.5cm;
+  grid-template-columns: 1fr 1.45cm 1fr;
+}
+.doc-a4-preview .doc-header-left,
+.doc-a4-preview .doc-header-right {
+  min-height: 1.5cm;
+}
+.doc-a4-preview .doc-header-garuda img { height: 1.45cm; }
+.doc-a4-preview .doc-agency-address {
+  margin-left: calc(50% + 0.725cm);
+  margin-top: 4pt;
+}
+/* วันเดือนปี — ตัวแรกที่ 50% (ml-[50%] text-left) */
 .doc-date {
-  margin-left: 50%;
-  margin-top: 0.45cm;
-  margin-bottom: 12px;
+  margin-bottom: 0;
   text-align: left;
 }
 .doc-a4-preview .doc-date {
-  margin-top: 0.28cm;
-  margin-bottom: 8px;
+  margin-bottom: 0;
 }
+/* เรื่อง/เรียน/อ้างถึง/สิ่งที่ส่งมาด้วย — mt-[6pt] */
 .doc-meta {
   display: flex;
   align-items: flex-start;
   gap: 0.5em;
-  margin-bottom: 8px;
+  margin-bottom: 0;
 }
 .doc-meta-label {
   flex: 0 0 auto;
   white-space: nowrap;
+  font-weight: 400;
 }
 .doc-meta-value {
   flex: 1 1 auto;
@@ -394,106 +467,115 @@ textarea.field {
   display: block;
 }
 .doc-meta-stacked .doc-meta-label { display: inline; }
-.doc-meta-last { margin-bottom: 15px; }
+.doc-meta-last { margin-bottom: 6pt; }
 .doc-meta-list {
   margin: 4px 0 0 1.5em;
   padding: 0;
   list-style: decimal;
 }
-.doc-body { margin-top: 12px; margin-bottom: 14px; }
-.doc-a4-preview .doc-body { margin-top: 8px; margin-bottom: 10px; }
+.doc-body { margin-top: 6pt; margin-bottom: 0; }
+.doc-a4-preview .doc-body { margin-top: 4pt; margin-bottom: 0; }
+.doc-para-block {
+  margin: 0;
+  padding: 0;
+}
 .doc-paragraph {
   text-indent: 2.5cm;
   text-align: justify;
   text-justify: inter-character;
-  margin: 0 0 0.45em;
+  margin: 0 0 6pt;
   line-height: 1.35;
   word-break: normal;
   overflow-wrap: anywhere;
 }
 .doc-a4-preview .doc-paragraph {
-  text-indent: 1.2cm;
-  margin-bottom: 6px;
+  margin-bottom: 4pt;
   line-height: 1.4;
 }
 .doc-a4-print .doc-paragraph {
-  text-indent: 2.5cm;
-  margin-bottom: 0.35em;
-  line-height: 1.25;
+  margin-bottom: 6pt;
+  line-height: 1.15;
 }
-/* คำลงท้ายเริ่มใกล้กึ่งกลาง; ชื่อ/ตำแหน่งจัดกึ่งกลางใต้คำลงท้าย */
+/* คำลงท้าย: mt-[12pt] · ml-[50%] · ชื่อ/ตำแหน่ง text-center ในครึ่งขวา */
+.doc-closing-block {
+  margin-top: 0;
+}
 .doc-signature {
-  margin-left: 45%;
-  width: 55%;
   box-sizing: border-box;
-  text-align: center;
-  page-break-inside: avoid;
-  break-inside: avoid;
 }
 .doc-closing {
-  text-align: left;
-  margin-left: calc(50% - 45%); /* ชิดแกนเดียวกับวันเดือนปี (~50%) */
-  margin-bottom: 0.35cm;
+  margin-bottom: 0;
 }
 .doc-sign-space {
-  height: 1.5cm;
-  margin-bottom: 0.15cm;
+  height: 2.5cm; /* ~4 Enter */
+  margin-bottom: 0.1cm;
 }
-.doc-a4-preview .doc-sign-space { height: 0.75cm; }
-.doc-a4-print .doc-sign-space { height: 1.5cm; }
+.doc-a4-preview .doc-sign-space { height: 1.15cm; }
+.doc-a4-print .doc-sign-space { height: 2.5cm; }
+.doc-sign-identity {
+  box-sizing: border-box;
+}
 .doc-sign-name,
 .doc-sign-position {
   white-space: pre-line;
 }
 .doc-contact {
   clear: both;
-  margin-top: 0.7cm;
+  margin-top: 2.5cm; /* ~4 Enter จากตำแหน่ง */
   font-size: 0.95em;
   line-height: 1.3;
-  page-break-inside: avoid;
-  break-inside: avoid;
-  page-break-before: avoid;
 }
 .doc-a4-preview .doc-contact {
-  margin-top: 10px;
+  margin-top: 1.15cm;
   padding-bottom: 4px;
 }
-.doc-a4-print .doc-meta { margin-bottom: 4px; }
-.doc-a4-print .doc-meta-last { margin-bottom: 8px; }
-.doc-a4-print .doc-date { margin-top: 0.35cm; margin-bottom: 8px; }
-.doc-a4-print .doc-body { margin-top: 8px; margin-bottom: 10px; }
-.doc-a4-print .doc-closing-block {
-  page-break-inside: avoid;
-  break-inside: avoid;
+.doc-a4-print .doc-contact { margin-top: 2.5cm; }
+.doc-cc { margin-top: 6pt; }
+/* บันทึกข้อความ — ขอบบน 2 ซม. (ไม่ใช่ 2.5 ซม. แบบหนังสือภายนอก) · ไม่มี footer ติดต่อ */
+.doc-a4-print.doc-memo {
+  padding: 2cm 2cm 2cm 3cm !important;
 }
-.doc-cc { margin-top: 0.6em; }
+.doc-a4-preview.doc-memo {
+  /* top/bottom 2/29.7 ≈ 6.7% · right 2/21 ≈ 9.5% · left 3/21 ≈ 14.3% */
+  padding: 6.7% 9.5% 6.7% 14.3% !important;
+}
 .doc-memo-header {
   display: flex;
   align-items: center;
-  gap: 0.6cm;
-  margin-bottom: 0.6cm;
+  gap: 0.4cm;
+  margin-bottom: 0.5cm;
 }
 .doc-memo-garuda img {
-  height: 1.6cm;
+  height: 1.5cm;
   width: auto;
   display: block;
 }
-.doc-a4-preview .doc-memo-garuda img { height: 0.9cm; }
+.doc-a4-preview .doc-memo-garuda img { height: 0.85cm; }
 .doc-memo-title {
-  font-size: 1.35em;
+  font-size: 24pt;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+.doc-a4-preview .doc-memo-title {
+  font-size: 14px;
 }
 .doc-memo-meta {
-  margin-bottom: 10px;
-  line-height: 1.45;
+  margin-bottom: 6pt;
+  line-height: 1.35;
 }
-.doc-memo-meta > div { margin-bottom: 4px; }
 .doc-memo-meta-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.2cm;
+  margin-top: 4pt;
 }
+.doc-memo-meta-row > span {
+  flex: 1 1 50%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.mt-\[4pt\] { margin-top: 4pt; }
+.pt-\[2cm\] { padding-top: 2cm; }
+.font-bold { font-weight: 700; }
 .list-field-row .field { flex: 1; margin-bottom: 0; }
 .char-count {
   margin: 0;
@@ -600,16 +682,23 @@ textarea.field {
   .hidden.sm\:flex { display: flex; }
 }
 
+/* PDF export ใช้ @react-pdf/renderer — HTML preview ไม่ได้พึ่งพา print CSS อีกต่อไป */
 @media print {
-  body * { visibility: hidden; }
-  .print-root,
-  .print-root * { visibility: visible; }
-  .print-root {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
+  @page {
+    size: A4;
+    margin: 0;
   }
-  .no-print { display: none !important; }
-  .doc-a4-print { box-shadow: none; margin: 0; }
+
+  .no-print,
+  .app-header,
+  .editor-form-panel,
+  .preview-label,
+  .mobile-editor-tabs,
+  .zoom-close {
+    display: none !important;
+  }
+
+  .doc-a4 {
+    box-shadow: none !important;
+  }
 }

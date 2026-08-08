@@ -11,6 +11,51 @@ function numberedItems(items: string[]): string[] {
   return items.map((x) => toThaiNumber(x)).filter((x) => x.trim() !== "");
 }
 
+function MetaRow({
+  label,
+  value,
+  boldLabel = true,
+  className = "",
+}: {
+  label: string;
+  value: string;
+  boldLabel?: boolean;
+  className?: string;
+}) {
+  if (!value.trim()) return null;
+  return (
+    <div className={`doc-meta mt-[4pt] ${className}`.trim()}>
+      <span className={`doc-meta-label ${boldLabel ? "font-bold" : "font-normal"}`}>{label}</span>
+      <span className="doc-meta-value">{value}</span>
+    </div>
+  );
+}
+
+function MetaList({
+  label,
+  items,
+  className = "",
+}: {
+  label: string;
+  items: string[];
+  className?: string;
+}) {
+  if (items.length === 0) return null;
+  if (items.length === 1) {
+    return <MetaRow label={label} value={items[0]!} boldLabel={false} className={className} />;
+  }
+  return (
+    <div className={`doc-meta doc-meta-stacked mt-[4pt] ${className}`.trim()}>
+      <span className="doc-meta-label font-normal">{label}</span>
+      <ol className="doc-meta-list">
+        {items.map((item, i) => (
+          <li key={i}>{item}</li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 export function InternalLetterPreview({ data, className = "", printMode }: Props) {
   const agencyName = toThaiNumber(data.agencyName);
   const docnum = toThaiNumber(data.docNum);
@@ -28,7 +73,7 @@ export function InternalLetterPreview({ data, className = "", printMode }: Props
 
   return (
     <article
-      className={`doc-a4 doc-memo font-sarabun text-black ${printMode ? "doc-a4-print" : "doc-a4-preview"} ${className}`}
+      className={`doc-a4 doc-memo font-sarabun text-black pt-[2cm] pr-[2cm] pb-[2cm] pl-[3cm] ${printMode ? "doc-a4-print" : "doc-a4-preview"} ${className}`}
     >
       {data.urgency ? <div className="doc-urgency">{data.urgency}</div> : null}
 
@@ -41,10 +86,12 @@ export function InternalLetterPreview({ data, className = "", printMode }: Props
       </div>
 
       <div className="doc-memo-meta">
-        <div>
-          <strong>ส่วนราชการ</strong>
-          &nbsp;&nbsp;{agencyName}
+        {/* Header fields always render so the form skeleton stays visible while editing. */}
+        <div className="doc-meta mt-[4pt]">
+          <strong className="doc-meta-label font-bold">ส่วนราชการ</strong>
+          <span className="doc-meta-value">{agencyName}</span>
         </div>
+
         <div className="doc-memo-meta-row">
           <span>
             <strong>ที่</strong>
@@ -55,73 +102,46 @@ export function InternalLetterPreview({ data, className = "", printMode }: Props
             &nbsp;&nbsp;{date}
           </span>
         </div>
-        <div>
-          <strong>เรื่อง</strong>
-          &nbsp;&nbsp;{subject}
+
+        <div className="doc-meta mt-[4pt]">
+          <strong className="doc-meta-label font-bold">เรื่อง</strong>
+          <span className="doc-meta-value">{subject}</span>
         </div>
       </div>
 
-      <div className="doc-meta">
-        <strong className="doc-meta-label">{data.salutation}</strong>
-        <span className="doc-meta-value" style={{ whiteSpace: "pre-line" }}>
-          {receiver}
-        </span>
-      </div>
-      {from ? (
-        <div className="doc-meta">
-          <strong className="doc-meta-label">จาก</strong>
-          <span className="doc-meta-value">{from}</span>
-        </div>
-      ) : null}
-      {references.length === 1 ? (
-        <div className="doc-meta">
-          <strong className="doc-meta-label">อ้างถึง</strong>
-          <span className="doc-meta-value">{references[0]}</span>
-        </div>
-      ) : null}
-      {references.length > 1 ? (
-        <div className="doc-meta doc-meta-stacked">
-          <strong>อ้างถึง</strong>
-          <ol className="doc-meta-list">
-            {references.map((item, i) => (
-              <li key={i}>{item}</li>
-            ))}
-          </ol>
-        </div>
-      ) : null}
-      {attachments.length === 1 ? (
-        <div className="doc-meta doc-meta-last">
-          <strong className="doc-meta-label">สิ่งที่ส่งมาด้วย</strong>
-          <span className="doc-meta-value">{attachments[0]}</span>
-        </div>
-      ) : null}
-      {attachments.length > 1 ? (
-        <div className="doc-meta doc-meta-stacked doc-meta-last">
-          <strong>สิ่งที่ส่งมาด้วย</strong>
-          <ol className="doc-meta-list">
-            {attachments.map((item, i) => (
-              <li key={i}>{item}</li>
-            ))}
-          </ol>
-        </div>
-      ) : null}
+      <MetaRow label={data.salutation} value={receiver} boldLabel={false} />
+      <MetaRow label="จาก" value={from} boldLabel={false} />
+      <MetaList
+        label="อ้างถึง"
+        items={references}
+        className={!attachments.length && references.length ? "doc-meta-last" : undefined}
+      />
+      <MetaList
+        label="สิ่งที่ส่งมาด้วย"
+        items={attachments}
+        className={attachments.length ? "doc-meta-last" : undefined}
+      />
 
       <div className="doc-body">
         {paragraphs.map((p, i) => (
-          <p key={i} className="doc-paragraph">
-            {p}
-          </p>
+          <div key={i} className="doc-para-block">
+            <p className="doc-paragraph indent-[2.5cm]">{p}</p>
+          </div>
         ))}
       </div>
 
       <div className="doc-closing-block">
-        <div className="doc-signature">
-          <div className="doc-closing">{data.closing}</div>
+        <div className="doc-signature ml-[50%] w-1/2 text-center mt-[12pt]">
+          <div className="doc-closing text-center">{data.closing}</div>
           <div className="doc-sign-space" aria-hidden="true" />
-          {signName ? <div className="doc-sign-name">({signName})</div> : null}
-          {position ? (
-            <div className="doc-sign-position" style={{ whiteSpace: "pre-line" }}>
-              {position}
+          {signName || position ? (
+            <div className="doc-sign-identity">
+              {signName ? <div className="doc-sign-name text-center">({signName})</div> : null}
+              {position ? (
+                <div className="doc-sign-position text-center" style={{ whiteSpace: "pre-line" }}>
+                  {position}
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>

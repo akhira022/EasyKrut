@@ -82,6 +82,17 @@ export function InternalEditor({ documentId, initialStatus, initialPayload }: Pr
     markDirty();
   }
 
+  function removeParagraph(index: number) {
+    if (index <= 0) return;
+    const ok = window.confirm(`ต้องการลบย่อหน้า ${index + 1} หรือไม่?`);
+    if (!ok) return;
+    setPayload((prev) => ({
+      ...prev,
+      paragraphs: prev.paragraphs.filter((_, i) => i !== index),
+    }));
+    markDirty();
+  }
+
   const persist = useEffectEvent(async (opts?: { silent?: boolean }) => {
     if (savingRef.current) return false;
     savingRef.current = true;
@@ -138,13 +149,13 @@ export function InternalEditor({ documentId, initialStatus, initialPayload }: Pr
   function exportPdf() {
     startTransition(async () => {
       await persist({ silent: true });
-      window.open(`/documents/${documentId}/print`, "_blank");
+      window.location.href = `/api/export/pdf?id=${documentId}`;
     });
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="no-print flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm text-[var(--text-muted)]">กำลังแก้ไข</p>
           <h1 className="text-xl font-medium">{title}</h1>
@@ -160,7 +171,7 @@ export function InternalEditor({ documentId, initialStatus, initialPayload }: Pr
             ขยายพรีวิว
           </button>
           <button type="button" className="btn-secondary" onClick={exportPdf} disabled={pending}>
-            PDF / พิมพ์
+            ดาวน์โหลด PDF
           </button>
           <button type="button" className="btn-secondary" onClick={exportWord} disabled={pending}>
             Word
@@ -216,7 +227,7 @@ export function InternalEditor({ documentId, initialStatus, initialPayload }: Pr
       </div>
 
       <div className={`content-wrapper mobile-tab-${mobileTab}`}>
-        <section className="form-section editor-form-panel">
+        <section className="form-section editor-form-panel no-print">
           <h2>กรอกข้อมูลบันทึกข้อความ</h2>
 
           <div className="form-group">
@@ -378,13 +389,25 @@ export function InternalEditor({ documentId, initialStatus, initialPayload }: Pr
             )}
             {payload.paragraphs.map((p, i) => (
               <div key={i} style={{ marginBottom: 8 }}>
-                <textarea
-                  className="field"
-                  rows={4}
-                  value={p}
-                  onChange={(e) => updateListItem("paragraphs", i, e.target.value)}
-                  style={{ marginBottom: 4 }}
-                />
+                <div className="list-field-row" style={{ alignItems: "flex-start" }}>
+                  <textarea
+                    className="field"
+                    rows={4}
+                    value={p}
+                    onChange={(e) => updateListItem("paragraphs", i, e.target.value)}
+                    style={{ marginBottom: 0 }}
+                  />
+                  {i > 0 ? (
+                    <button
+                      type="button"
+                      className="btn-text"
+                      onClick={() => removeParagraph(i)}
+                      style={{ marginTop: 6 }}
+                    >
+                      ลบ
+                    </button>
+                  ) : null}
+                </div>
                 <p
                   className={`char-count ${overSoftLimit(p, DOC_SOFT_LIMITS.paragraph) ? "char-count-warn" : ""}`}
                 >

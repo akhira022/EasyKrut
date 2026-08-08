@@ -45,10 +45,13 @@ function p(text: string) {
   });
 }
 
+/** 1 Enter + Before 6 pt ≈ single line + 120 twip */
+const META_SPACING = { after: 120, line: 276, lineRule: LineRuleType.AUTO };
+
 function richLabel(label: string, value: string) {
   return new Paragraph({
-    spacing: { after: 80 },
-    children: [run(label, { bold: true }), run(`  ${value}`)],
+    spacing: META_SPACING,
+    children: [run(label), run(`  ${value}`)],
   });
 }
 
@@ -58,14 +61,14 @@ function listLabel(label: string, items: string[]): Paragraph[] {
   if (cleaned.length === 1) return [richLabel(label, cleaned[0]!)];
   const out: Paragraph[] = [
     new Paragraph({
-      spacing: { after: 40 },
-      children: [run(label, { bold: true })],
+      spacing: { after: 40, line: 276, lineRule: LineRuleType.AUTO },
+      children: [run(label)],
     }),
   ];
   cleaned.forEach((item, i) => {
     out.push(
       new Paragraph({
-        spacing: { after: 40 },
+        spacing: i === cleaned.length - 1 ? META_SPACING : { after: 40, line: 276, lineRule: LineRuleType.AUTO },
         indent: { left: convertInchesToTwip(0.4) },
         children: [run(`${toThaiNumber(i + 1)}. ${item}`)],
       }),
@@ -74,7 +77,7 @@ function listLabel(label: string, items: string[]): Paragraph[] {
   return out;
 }
 
-function agencyLines(text: string): Paragraph[] {
+function agencyLines(text: string, opts?: { firstSpacingBefore?: number }): Paragraph[] {
   const lines = text
     .split(/\r?\n/)
     .map((l) => l.trim())
@@ -85,7 +88,12 @@ function agencyLines(text: string): Paragraph[] {
   return lines.map(
     (line, i) =>
       new Paragraph({
-        spacing: { after: i === lines.length - 1 ? 0 : 20 },
+        spacing: {
+          before: i === 0 ? (opts?.firstSpacingBefore ?? 0) : 120,
+          after: i === lines.length - 1 ? 0 : 0,
+          line: 276,
+          lineRule: LineRuleType.AUTO,
+        },
         children: [run(line)],
       }),
   );
@@ -115,8 +123,8 @@ export async function buildExternalDocx(data: ExternalLetterPayload): Promise<Bu
     garuda = new ImageRun({
       type: "png",
       data: buf,
-      // ~2.7cm — กะทัดรัดขึ้นเพื่ออยู่หน้าเดียว
-      transformation: { width: 102, height: 102 },
+      // สูง 3 ซม. ตามแบบ (≈113px @96dpi)
+      transformation: { width: 113, height: 113 },
       altText: { title: "ครุฑ", description: "ตราครุฑ", name: "krut" },
     });
   } catch {
@@ -134,13 +142,17 @@ export async function buildExternalDocx(data: ExternalLetterPayload): Promise<Bu
     );
   }
 
-  // ตาม 1703073586: ที่ | ครุฑ | ส่วนราชการ (ชิดซ้ายในคอลัมน์ขวา)
-  // คอลัมน์ขวาแคบลงเพื่อให้ขอบซ้ายส่วนราชการอยู่ ~65% ของความกว้างเนื้อหา
-  const contentW = convertInchesToTwip(6.3);
-  const leftCol = convertInchesToTwip(2.0);
-  const midCol = convertInchesToTwip(2.1);
+  // ตามรูปแบบ_หนังสือภายนอก.pdf: ที่ | ครุฑกึ่งกลาง | ส่วนราชการ (เริ่มแกนหน้า, ระดับเท้า)
+  const contentW = convertInchesToTwip(16 / 2.54);
+  const axis = convertInchesToTwip(8 / 2.54); // 50% ของความกว้างเนื้อหา 16 ซม.
+  const midCol = convertInchesToTwip(3 / 2.54);
+  const leftCol = axis - midCol / 2;
   const rightCol = contentW - leftCol - midCol;
-  const rightParas = [...agencyLines(agencyName), ...agencyLines(agencyAddress)];
+  const nameParas = agencyLines(agencyName);
+  const addrParas = agencyAddress.trim()
+    ? agencyLines(agencyAddress, { firstSpacingBefore: 120 })
+    : [];
+  const rightParas = [...nameParas, ...addrParas];
   if (rightParas.length === 0) {
     rightParas.push(new Paragraph({ children: [run("")] }));
   }
@@ -178,7 +190,7 @@ export async function buildExternalDocx(data: ExternalLetterPayload): Promise<Bu
             new TableCell({
               borders: NO_BORDER,
               width: { size: rightCol, type: WidthType.DXA },
-              verticalAlign: VerticalAlign.CENTER,
+              verticalAlign: VerticalAlign.BOTTOM,
               children: rightParas,
             }),
           ],
@@ -190,8 +202,8 @@ export async function buildExternalDocx(data: ExternalLetterPayload): Promise<Bu
   if (date) {
     children.push(
       new Paragraph({
-        spacing: { before: 120, after: 120 },
-        indent: { left: convertInchesToTwip(3.15) },
+        spacing: { before: 120, after: 120, line: 276, lineRule: LineRuleType.AUTO },
+        indent: { left: axis },
         children: [run(date)],
       }),
     );
@@ -224,35 +236,40 @@ export async function buildExternalDocx(data: ExternalLetterPayload): Promise<Bu
   for (const para of paragraphs) {
     children.push(
       new Paragraph({
-        spacing: { after: 100, line: 276, lineRule: LineRuleType.AUTO }, // ~1.15 line
-        indent: { firstLine: convertInchesToTwip(0.98) }, // 2.5cm
-        // จัดไทยกระจาย — ชิดซ้าย-ขวาโดยไม่ทำช่องว่างกว้างแบบ BOTH
+        // ย่อหน้า 2.5 ซม. + 1 Enter + Before 6 pt ระหว่างย่อหน้า
+        spacing: { after: 120, line: 276, lineRule: LineRuleType.AUTO },
+        indent: { firstLine: convertInchesToTwip(2.5 / 2.54) },
         alignment: AlignmentType.THAI_DISTRIBUTE,
         children: [run(para)],
       }),
     );
   }
 
+  const halfPage = axis; // กึ่งกลางหน้า = 7.5 ซม.
   children.push(
     new Paragraph({
-      indent: { left: convertInchesToTwip(3.15) },
-      spacing: { before: 120, after: 80 },
+      indent: { left: halfPage },
+      // 1 Enter + Before 12 pt จากภาคสรุป
+      spacing: { before: 240, after: 0, line: 276, lineRule: LineRuleType.AUTO },
       children: [run(data.closing)],
     }),
   );
-  children.push(
-    new Paragraph({
-      indent: { left: convertInchesToTwip(3.15) },
-      spacing: { after: 200 },
-      children: [run(" ")],
-    }),
-  );
+  // [10] เว้นลายเซ็น ~4 Enter
+  for (let i = 0; i < 4; i++) {
+    children.push(
+      new Paragraph({
+        indent: { left: halfPage },
+        spacing: { after: 0, line: 276, lineRule: LineRuleType.AUTO },
+        children: [run(" ")],
+      }),
+    );
+  }
   if (signName) {
     children.push(
       new Paragraph({
-        indent: { left: convertInchesToTwip(3.15) },
+        indent: { left: halfPage },
         alignment: AlignmentType.CENTER,
-        spacing: { after: 40 },
+        spacing: { after: 40, line: 276, lineRule: LineRuleType.AUTO },
         children: [run(`(${signName})`)],
       }),
     );
@@ -265,16 +282,24 @@ export async function buildExternalDocx(data: ExternalLetterPayload): Promise<Bu
       .forEach((line) => {
         children.push(
           new Paragraph({
-            indent: { left: convertInchesToTwip(3.15) },
+            indent: { left: halfPage },
             alignment: AlignmentType.CENTER,
-            spacing: { after: 20 },
+            spacing: { after: 20, line: 276, lineRule: LineRuleType.AUTO },
             children: [run(line)],
           }),
         );
       });
   }
 
-  children.push(new Paragraph({ spacing: { before: 160 }, children: [] }));
+  // [13–16] ~4 Enter จากตำแหน่ง ถึงส่วนราชการเจ้าของเรื่อง
+  for (let i = 0; i < 4; i++) {
+    children.push(
+      new Paragraph({
+        spacing: { after: 0, line: 276, lineRule: LineRuleType.AUTO },
+        children: [],
+      }),
+    );
+  }
   if (contactUnit) children.push(p(contactUnit));
   if (tel) children.push(p(`โทร. ${tel}`));
   if (fax) children.push(p(`โทรสาร ${fax}`));
@@ -282,7 +307,7 @@ export async function buildExternalDocx(data: ExternalLetterPayload): Promise<Bu
   if (cc) {
     children.push(
       new Paragraph({
-        spacing: { before: 100, after: 60 },
+        spacing: { before: 120, after: 60 },
         children: [run("สำเนาส่ง", { bold: true }), run(`  ${cc}`)],
       }),
     );
@@ -298,10 +323,11 @@ export async function buildExternalDocx(data: ExternalLetterPayload): Promise<Bu
               height: convertInchesToTwip(11.69),
             },
             margin: {
-              top: convertInchesToTwip(1.18),
-              left: convertInchesToTwip(1.18),
-              right: convertInchesToTwip(0.79),
-              bottom: convertInchesToTwip(0.79),
+              // บน 2.5 / ซ้าย 3 / ขวา 2 / ล่าง 2 ซม.
+              top: convertInchesToTwip(2.5 / 2.54),
+              left: convertInchesToTwip(3 / 2.54),
+              right: convertInchesToTwip(2 / 2.54),
+              bottom: convertInchesToTwip(2 / 2.54),
             },
           },
         },

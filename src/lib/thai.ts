@@ -5,6 +5,39 @@ export function toThaiNumber(value: string | number | null | undefined): string 
   return String(value).replace(/\d/g, (d) => THAI_DIGITS[Number(d)]);
 }
 
+/** Zero-width space — an invisible, valid line-break opportunity. */
+const ZWSP = "\u200B";
+
+let thaiWordSegmenter: Intl.Segmenter | undefined;
+function getThaiWordSegmenter(): Intl.Segmenter | undefined {
+  if (typeof Intl === "undefined" || typeof Intl.Segmenter !== "function") return undefined;
+  thaiWordSegmenter ??= new Intl.Segmenter("th", { granularity: "word" });
+  return thaiWordSegmenter;
+}
+
+/**
+ * Thai script has no spaces between words, so text layout engines (browsers,
+ * @react-pdf/renderer, etc.) treat an entire Thai sentence as a single
+ * unbreakable "word" and either overflow it or fall back to splitting it at
+ * an arbitrary character boundary (ugly mid-word breaks).
+ *
+ * This inserts an invisible zero-width space (U+200B) between Thai word
+ * boundaries — as detected by `Intl.Segmenter` — so renderers can wrap the
+ * text at real word boundaries instead. The ZWSP is never visible and adds
+ * no extra spacing; it only exists as a break opportunity.
+ *
+ * Safe to call on mixed Thai/English/number text and safe to call twice
+ * (idempotent — re-segmenting text that already contains ZWSP just yields
+ * the same boundaries again since ZWSP itself isn't word content).
+ */
+export function insertThaiWordBreaks(text: string | null | undefined): string {
+  if (!text) return "";
+  const segmenter = getThaiWordSegmenter();
+  if (!segmenter) return text; // Intl.Segmenter unsupported — return unchanged.
+  const words = Array.from(segmenter.segment(text), (s) => s.segment);
+  return words.join(ZWSP);
+}
+
 const THAI_MONTHS = [
   "มกราคม",
   "กุมภาพันธ์",
