@@ -15,9 +15,10 @@
 | Auth | Auth.js (NextAuth v5) — อีเมล/รหัสผ่าน + invite เข้าหน่วยงาน |
 | MVP เอกสาร | หนังสือภายนอกเท่านั้น ให้ครบ form / preview / บันทึก / PDF / Word |
 | ประเภทอื่น | เฟสถัดไป: ภายใน → ประชุม → สั่งการ → รับรอง |
-| Export PDF | `@media print` + หน้าพิมพ์ A4 ที่ควบคุม CSS (MVP) |
+| Export PDF | `@react-pdf/renderer` + หน้าพิมพ์ A4 (CSS) |
 | Export Word | ไลบรารี `docx` ผ่าน Route Handler |
-| หารายได้ | เตรียม schema + feature gate ตั้งแต่ Phase 1 — ยังไม่ต่อ Stripe ใน MVP |
+| หารายได้ | schema + feature gate + Stripe Checkout/Portal/Webhook (เปิดเมื่อตั้ง env) |
+| Userflow | ดู [`docs/USERFLOW.md`](USERFLOW.md) — จุดสร้างเอกสารผ่าน `/documents/new` |
 | Prototype เดิม | อ้างอิง layout/UX แล้วสร้างแอป Next.js ใหม่ใน repo (ไม่ต่อ PHP) |
 | ตราครุฑ | `docs/krut-3-cm.png` → `public/krut.png` |
 
@@ -283,6 +284,9 @@ apps/web หรือ root next app/
 5. Export PDF (พิมพ์) และ Word ใช้งานได้จากเอกสารที่บันทึก  
 6. เมื่อสร้างครบโควตา Free ระบบบล็อกพร้อมข้อความอัปเกรด (แม้ยังไม่มี Stripe)  
 7. ประเภทเอกสารอื่นใน UI แสดงเป็น “เร็วๆ นี้” หรือซ่อน — ไม่ทำให้เข้าใจว่าใช้ได้แล้ว  
+8. Userflow สร้างเอกสารผ่าน `/documents/new` และแดชบอร์ดว่างแสดงขั้นตอนเริ่มต้นใช้งาน  
+
+รายละเอียดเส้นทางผู้ใช้ปัจจุบัน: [`docs/USERFLOW.md`](USERFLOW.md)
 
 ---
 

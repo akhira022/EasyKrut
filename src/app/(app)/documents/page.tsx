@@ -1,38 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
-  createExternalDocumentAction,
-  createInternalDocumentAction,
   deleteDocumentAction,
   duplicateDocumentAction,
 } from "@/lib/actions/documents";
-import { DocumentType } from "@/lib/constants";
+import { documentStatusLabel, documentTypeLabel } from "@/lib/documents/labels";
 import { prisma } from "@/lib/db";
 import { requireOrgContext } from "@/lib/org-context";
-
-async function createExternalDoc() {
-  "use server";
-  const result = await createExternalDocumentAction();
-  if (result.ok && result.documentId) {
-    redirect(`/documents/${result.documentId}`);
-  }
-  redirect(`/documents?error=${encodeURIComponent(result.error ?? "สร้างไม่สำเร็จ")}`);
-}
-
-async function createInternalDoc() {
-  "use server";
-  const result = await createInternalDocumentAction();
-  if (result.ok && result.documentId) {
-    redirect(`/documents/${result.documentId}`);
-  }
-  redirect(`/documents?error=${encodeURIComponent(result.error ?? "สร้างไม่สำเร็จ")}`);
-}
-
-function typeLabel(type: string) {
-  if (type === DocumentType.INTERNAL) return "ภายใน";
-  if (type === DocumentType.EXTERNAL) return "ภายนอก";
-  return type;
-}
 
 export default async function DocumentsPage({
   searchParams,
@@ -96,18 +70,9 @@ export default async function DocumentsPage({
             เอกสารทั้งหมดในหน่วยงาน
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <form action={createExternalDoc}>
-            <button type="submit" className="btn-primary">
-              + หนังสือภายนอก
-            </button>
-          </form>
-          <form action={createInternalDoc}>
-            <button type="submit" className="btn-secondary">
-              + หนังสือภายใน
-            </button>
-          </form>
-        </div>
+        <Link href="/documents/new" className="btn-primary">
+          + สร้างเอกสาร
+        </Link>
       </div>
 
       {sp.error ? (
@@ -168,8 +133,19 @@ export default async function DocumentsPage({
           <tbody>
             {documents.length === 0 ? (
               <tr>
-                <td colSpan={6} className="p-4 text-[var(--text-muted)]">
-                  ไม่พบเอกสาร
+                <td colSpan={6} className="p-6 text-[var(--text-muted)]">
+                  <p>ไม่พบเอกสาร</p>
+                  {!q && !from && !to && !creatorId ? (
+                    <p className="mt-2">
+                      ยังไม่มีฉบับในหน่วยงาน —{" "}
+                      <Link
+                        href="/documents/new"
+                        className="text-[var(--primary-color)] hover:underline"
+                      >
+                        เลือกประเภทแล้วสร้างฉบับแรก
+                      </Link>
+                    </p>
+                  ) : null}
                 </td>
               </tr>
             ) : (
@@ -185,8 +161,8 @@ export default async function DocumentsPage({
                         {doc.title}
                       </Link>
                     </td>
-                    <td className="p-3">{typeLabel(doc.type)}</td>
-                    <td className="p-3">{doc.status === "FINAL" ? "สมบูรณ์" : "ร่าง"}</td>
+                    <td className="p-3">{documentTypeLabel(doc.type)}</td>
+                    <td className="p-3">{documentStatusLabel(doc.status)}</td>
                     <td className="p-3">{doc.createdBy.name}</td>
                     <td className="p-3 whitespace-nowrap">
                       {doc.updatedAt.toLocaleString("th-TH")}
@@ -228,8 +204,11 @@ export default async function DocumentsPage({
         </table>
       </div>
 
-      <div className="rounded-xl border border-dashed border-[var(--border-color)] p-4 text-sm text-[var(--text-muted)]">
-        ประเภทอื่น (ประทับตรา, สั่งการ, ประชาสัมพันธ์, รับรอง, ประชุม) — เร็วๆ นี้
+      <div className="rounded-xl border border-dashed border-[var(--border-color)] p-4 text-sm text-[var(--text-muted)] flex flex-wrap items-center justify-between gap-2">
+        <span>ประเภทอื่น (ประทับตรา, สั่งการ, ประชาสัมพันธ์, รับรอง, ประชุม) — เร็วๆ นี้</span>
+        <Link href="/documents/new" className="text-[var(--primary-color)] hover:underline">
+          ดูประเภทที่สร้างได้
+        </Link>
       </div>
     </div>
   );

@@ -36,12 +36,13 @@ node scripts/seed-demo.js
 ## สิ่งที่ได้ใน MVP
 
 - สมัคร / เข้าสู่ระบบ / เชิญสมาชิกหน่วยงาน
-- สร้าง·แก้ไข **หนังสือภายนอก** พร้อมพรีวิวสด A4
+- สร้าง·แก้ไข **หนังสือภายนอก** และ **หนังสือภายใน** พร้อมพรีวิวสด A4
+- จุดสร้างเอกสารรวมที่ `/documents/new` + onboarding บนแดชบอร์ด
 - บันทึก DRAFT/FINAL, ประวัติเอกสาร
-- Export PDF (หน้าพิมพ์) และ Word (`.docx`)
-- Feature gate ตามแผน Free/Pro/Business (ยังไม่ต่อ Stripe)
+- Export PDF และ Word (`.docx`)
+- Feature gate ตามแผน Free/Pro/Business (+ Stripe เมื่อตั้ง env)
 
-Prototype เดิมถูกลบแล้ว · แผนงานอยู่ที่ `docs/PLAN.md`
+Prototype เดิมถูกลบแล้ว · แผนงานอยู่ที่ `docs/PLAN.md` · userflow อยู่ที่ `docs/USERFLOW.md`
 
 ## สคริปต์
 
