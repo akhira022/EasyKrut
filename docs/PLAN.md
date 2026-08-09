@@ -4,7 +4,7 @@
 **เป้าหมายธุรกิจ:** เริ่มใช้งานจริงในหน่วยงาน แล้วขยายเป็น SaaS หารายได้ในอนาคต  
 **สถานะต้นทาง:** พอร์ตจาก prototype HTML/JS เดิมเป็น Next.js แล้ว (ไฟล์ต้นฉบับถูกลบ)
 
-> เอกสารรวมสถานะ + userflow + โรดแมปแบบย่อ: [`OVERVIEW.md`](OVERVIEW.md)
+> เอกสารรวมสถานะ + userflow + โรดแมป + ปัญหาที่เจอ: [`OVERVIEW.md`](OVERVIEW.md) (v1.2)
 
 ---
 
@@ -300,8 +300,13 @@ apps/web หรือ root next app/
 | Layout Word ไม่ตรง HTML 100% | ยอมรับความใกล้เคียงใน MVP; เน้น PDF/พิมพ์เป็นต้นฉบับทางการ |
 | ฟอนต์ราชการบนเซิร์ฟเวอร์ | ใส่ไฟล์ฟอนต์ใน repo สำหรับ PDF ภายหลัง; DOCX พึ่งฟอนต์เครื่องผู้ใช้ |
 | Multi-tenant รั่วข้อมูลข้าม org | บังคับ `organizationId` ในทุก query + ตรวจ membership ใน server |
-| Scope บวมก่อนมีลูกค้า | ล็อก Phase 0–3 ก่อน; ประเภทเอกสารและ Stripe ห้ามแทรก MVP |
+| Scope บวมก่อนมีลูกค้า | ล็อกประเภทเอกสารทีละชนิด; ชิ้นถัดไป = ประทับตราเท่านั้น |
 | Prototype PHP/Quill สับสน | ไม่พอร์ต `export.php`; เขียน export ใหม่ใน Next |
+| Lint `useEffectEvent` ใน editor | ห้ามเรียกนอก Effect — เก็บเป็น debt ก่อนทำประเภทใหม่ |
+| Next.js `middleware` deprecated | วางแผนย้ายเป็น `proxy` ตาม docs ของ Next |
+| เอกสารบน PR draft ยังไม่ขึ้น branch หลัก | merge ให้จบก่อนบอกว่า “มีไฟล์ใน docs แล้ว” |
+
+รายละเอียดปัญหาที่เจอรอบล่าสุด: [`OVERVIEW.md` §9](OVERVIEW.md)
 
 ---
 

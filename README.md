@@ -43,10 +43,11 @@ node scripts/seed-demo.js
 - Feature gate ตามแผน Free/Pro/Business (+ Stripe เมื่อตั้ง env)
 
 Prototype เดิมถูกลบแล้ว  
-เอกสารรวม (v1.1): [`docs/OVERVIEW.md`](docs/OVERVIEW.md)  
+เอกสารรวม (v1.2): [`docs/OVERVIEW.md`](docs/OVERVIEW.md) — รวมสถานะ, userflow, โรดแมป, **ปัญหาที่เจอ**  
 แผนละเอียด: `docs/PLAN.md` · userflow: `docs/USERFLOW.md`  
 
-**ชิ้นถัดไป:** หนังสือประทับตรา (แบบที่ 3)
+**ชิ้นถัดไป:** หนังสือประทับตรา (แบบที่ 3)  
+**Debt คู่ขนาน:** lint `useEffectEvent` ใน editor · ย้าย middleware → proxy
 
 ## สคริปต์
 
