@@ -42,7 +42,9 @@ node scripts/seed-demo.js
 - Export PDF และ Word (`.docx`)
 - Feature gate ตามแผน Free/Pro/Business (+ Stripe เมื่อตั้ง env)
 
-Prototype เดิมถูกลบแล้ว · แผนงานอยู่ที่ `docs/PLAN.md` · userflow อยู่ที่ `docs/USERFLOW.md`
+Prototype เดิมถูกลบแล้ว  
+เอกสารรวมทุกอย่าง: [`docs/OVERVIEW.md`](docs/OVERVIEW.md)  
+แผนละเอียด: `docs/PLAN.md` · userflow: `docs/USERFLOW.md`
 
 ## สคริปต์
 
