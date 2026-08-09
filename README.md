@@ -2,6 +2,10 @@
 
 ระบบสร้างเอกสารราชการอิเล็กทรอนิกส์สำหรับหน่วยงาน (multi-tenant)
 
+**สถานะปัจจุบัน:** MVP พร้อมใช้ — หนังสือภายนอก + หนังสือภายใน (บันทึกข้อความ)  
+**ชิ้นถัดไป:** หนังสือประทับตรา (แบบที่ 3)  
+**เอกสาร:** [`docs/OVERVIEW.md`](docs/OVERVIEW.md) (v1.3) · [`docs/PLAN.md`](docs/PLAN.md) · [`docs/USERFLOW.md`](docs/USERFLOW.md)
+
 ## ความต้องการ
 
 - Node.js 20+
@@ -15,7 +19,7 @@ cp .env.example .env
 
 # 2) ติดตั้งและ migrate (ค่าเริ่มต้นใช้ SQLite ไฟล์ prisma/dev.db)
 npm install
-npx prisma migrate dev --name init
+npx prisma migrate dev
 npm run dev
 ```
 
@@ -23,37 +27,42 @@ npm run dev
 
 > พอร์ต **3010** ตั้งไว้เพื่อไม่ชน Grafana ที่มักใช้ `:3000` — ค่า `AUTH_URL` ใน `.env` ต้องตรงกับพอร์ตนี้
 
-บัญชีทดลอง (หลังรัน seed):
+บัญชีทดลอง:
 
 ```bash
-node scripts/seed-demo.js
+npm run db:seed
 # อีเมล: demo@easykrut.local
 # รหัสผ่าน: demo1234
 ```
 
-ถ้าต้องการ Postgres แทน: เปิด Docker Desktop แล้วรัน `docker compose up -d` จากนั้นปรับ schema/provider และ `DATABASE_URL`
+ถ้าต้องการ Postgres: `docker compose up -d` แล้วปรับ provider / `DATABASE_URL`
 
-## สิ่งที่ได้ใน MVP
+## สิ่งที่ได้ตอนนี้
 
 - สมัคร / เข้าสู่ระบบ / เชิญสมาชิกหน่วยงาน
 - สร้าง·แก้ไข **หนังสือภายนอก** และ **หนังสือภายใน** พร้อมพรีวิวสด A4
-- จุดสร้างเอกสารรวมที่ `/documents/new` + onboarding บนแดชบอร์ด
-- บันทึก DRAFT/FINAL, ประวัติเอกสาร
-- Export PDF และ Word (`.docx`)
-- Feature gate ตามแผน Free/Pro/Business (+ Stripe เมื่อตั้ง env)
+- จุดสร้างรวมที่ `/documents/new` + onboarding บนแดชบอร์ด
+- บันทึก DRAFT/FINAL, autosave, ค้นหา, คัดลอก
+- Export PDF (`@react-pdf/renderer`) และ Word (`.docx`)
+- Feature gate Free/Pro/Business (+ Stripe เมื่อตั้ง env)
 
-Prototype เดิมถูกลบแล้ว  
-เอกสารรวม (v1.2): [`docs/OVERVIEW.md`](docs/OVERVIEW.md) — รวมสถานะ, userflow, โรดแมป, **ปัญหาที่เจอ**  
-แผนละเอียด: `docs/PLAN.md` · userflow: `docs/USERFLOW.md`  
+## สแต็กหลัก
 
-**ชิ้นถัดไป:** หนังสือประทับตรา (แบบที่ 3)  
-**Debt คู่ขนาน:** lint `useEffectEvent` ใน editor · ย้าย middleware → proxy
+Next.js 16 · React 19 · Prisma 5 + SQLite · Auth.js v5 · Zod 4 · Stripe
 
 ## สคริปต์
 
 | คำสั่ง | ความหมาย |
 |--------|----------|
-| `npm run dev` | รัน dev server |
-| `npm run db:up` | เปิด Postgres |
+| `npm run dev` | รัน dev server :3010 |
+| `npm run db:up` | เปิด Postgres (Docker) |
 | `npm run db:migrate` | รัน migration |
+| `npm run db:seed` | สร้างบัญชี demo |
 | `npm run build` | build production |
+| `npm run lint` | ESLint |
+
+## Debt ที่รู้แล้ว
+
+- lint `useEffectEvent` ใน editor
+- ย้าย `middleware` → `proxy` (Next.js 16)
+- ปรับ seed script ให้ผ่าน eslint

@@ -1,12 +1,12 @@
 # EasyKrut — เอกสารรวม (Overview)
 
-**เวอร์ชัน:** 1.2  
-**สถานะเอกสาร:** Baseline หลัง MVP + userflow + บันทึกข้อความครบ + บันทึกปัญหาที่เจอ
+**เวอร์ชัน:** 1.3  
+**สถานะเอกสาร:** ตรงกับโค้ดบน `cursor/mvp-official-documents` (9 ส.ค. 2026)
 
 เอกสารฉบับนี้รวมภาพผลิตภัณฑ์ สถานะปัจจุบัน เส้นทางผู้ใช้ สถาปัตยกรรม แผนราคา โรดแมป และปัญหาที่เจอไว้ที่เดียว  
-รายละเอียดเชิงแผนงานยาวอยู่ที่ [`PLAN.md`](PLAN.md) · รายละเอียดเส้นทางผู้ใช้อยู่ที่ [`USERFLOW.md`](USERFLOW.md)
+แผนละเอียด: [`PLAN.md`](PLAN.md) · Userflow: [`USERFLOW.md`](USERFLOW.md)
 
-**อัปเดตล่าสุด:** Version 1.2 (9 ส.ค. 2026) — อัปเดตเอกสารทั้งหมด + เพิ่มหมวดปัญหาที่เจอ · ชิ้นถัดไปยังเป็นหนังสือประทับตรา
+**อัปเดตล่าสุด:** Version 1.3 — จัดแผน/เอกสารทั้งหมดให้สอดคล้องโปรเจกต์จริง (ภายนอก+ภายในครบ · ถัดไปประทับตรา · โครงโฟลเดอร์/สแต็กตรงโค้ด)
 
 ---
 
@@ -21,36 +21,39 @@
 
 **เป้าหมายธุรกิจ:** เริ่มใช้จริงในหน่วยงาน → ขยายเป็น SaaS
 
+**สแต็ก:** Next.js 16.3 · React 19 · Prisma 5 + SQLite (local) · Auth.js v5 · Zod 4 · พอร์ต `3010`
+
 ---
 
-## 2. สถานะปัจจุบัน (ทำอะไรได้แล้ว)
+## 2. สถานะปัจจุบัน (ตรงกับโค้ด)
 
 | หัวข้อ | สถานะ | หมายเหตุ |
 |--------|--------|----------|
 | สมัคร / เข้าสู่ระบบ / ออกจากระบบ | ✅ | Auth.js credentials |
-| สร้างหน่วยงานอัตโนมัติตอนสมัคร | ✅ | ได้ OWNER + แผน Free |
-| เชิญสมาชิก (invite token) | ✅ | จากหน้าหน่วยงาน |
+| สร้างหน่วยงานอัตโนมัติตอนสมัคร | ✅ | OWNER + แผน Free |
+| เชิญสมาชิก (invite token) | ✅ | `/org/settings` + `/invite/[token]` |
 | หนังสือภายนอก (ตราครุฑ) | ✅ | form + preview + PDF + Word |
 | หนังสือภายใน (บันทึกข้อความ) | ✅ | form + preview + PDF + Word |
-| จุดสร้างเอกสารรวม `/documents/new` | ✅ | เลือกประเภทก่อนสร้าง |
-| Onboarding แดชบอร์ดว่าง | ✅ | 3 ขั้น: เทมเพลต → สร้าง → ส่งออก |
-| บันทึก DRAFT / FINAL + autosave | ✅ | |
-| ประวัติเอกสาร + ค้นหา + คัดลอก | ✅ | เรื่อง / วันที่ / ผู้สร้าง |
-| เทมเพลตหน่วยงาน | ✅ | เติมค่าเริ่มต้นตอนสร้างเอกสาร |
-| Feature gate ตามแผน | ✅ | บล็อกเมื่อชนโควตา |
-| Stripe Checkout / Portal / Webhook | ✅ โครงพร้อม | เปิดเมื่อตั้ง env |
-| ประเภทอื่น (ประทับตรา, สั่งการ, ฯลฯ) | ⏳ | แสดงเป็น “เร็วๆ นี้” |
-| e-Signature / SSO / เลขที่รันอัตโนมัติ | ❌ | นอกขอบเขตตอนนี้ |
+| จุดสร้าง `/documents/new` | ✅ | เลือกประเภทก่อนสร้าง |
+| Onboarding แดชบอร์ดว่าง | ✅ | เทมเพลต → สร้าง → ส่งออก |
+| DRAFT / FINAL + autosave | ✅ | ~20 วินาที |
+| ประวัติ + ค้นหา + คัดลอก + ลบ | ✅ | |
+| เทมเพลตหน่วยงาน | ✅ | `OrgTemplate` |
+| Feature gate ตามแผน | ✅ | `entitlements.ts` |
+| Pricing + Stripe API | ✅ โครง | เปิดขายเมื่อตั้ง env |
+| ประทับตรา / สั่งการ / ประชาสัมพันธ์ / รับรอง | ⏳ | “เร็วๆ นี้” ใน UI |
+| DocumentVersion / e-Sign / SSO | ❌ | นอกขอบเขตตอนนี้ |
 
 ### บัญชีทดลอง
 
 ```bash
-node scripts/seed-demo.js
+npm run db:seed
+# หรือ: node scripts/seed-demo.js
 # อีเมล: demo@easykrut.local
 # รหัสผ่าน: demo1234
 ```
 
-รันแอป: `npm run dev` → [http://localhost:3010](http://localhost:3010)
+รัน: `npm run dev` → [http://localhost:3010](http://localhost:3010)
 
 ---
 
@@ -68,78 +71,46 @@ flowchart LR
   Editor --> Export[บันทึก / PDF / Word]
 ```
 
-1. สมัคร → ได้ User + Organization + Membership OWNER  
-2. แดชบอร์ดว่างแสดง **เริ่มต้นใช้งานใน 3 ขั้น**  
-3. (แนะนำ) ตั้งเทมเพลตหน่วยงาน  
-4. กด **สร้างเอกสาร** → เลือกภายนอกหรือภายใน  
-5. กรอก + พรีวิว → บันทึก → ส่งออก  
+### 3.2 จุดเข้า UI
 
-### 3.2 ผู้ใช้ที่ถูกเชิญ
+| จุด | เส้นทาง |
+|-----|---------|
+| หน้าแรก | `/` |
+| แดชบอร์ด | `/dashboard` |
+| เลือกประเภท | `/documents/new` |
+| ประวัติ | `/documents` |
+| แก้ไข / พิมพ์ | `/documents/[id]` · `/documents/[id]/print` |
+| หน่วยงาน | `/org/settings` |
+| ราคา | `/pricing` |
+| เชิญ | `/invite/[token]` |
 
-```mermaid
-flowchart LR
-  Invite["/invite/token"] --> Accept[ยอมรับคำเชิญ]
-  Accept --> Dashboard[แดชบอร์ดหน่วยงาน]
-  Dashboard --> Docs[ประวัติเอกสาร]
-```
-
-### 3.3 ผู้ใช้กลับมาใช้ซ้ำ
-
-`/login` → `/dashboard` → เปิดเอกสารล่าสุด หรือค้นจาก `/documents` → คัดลอก/แก้/ส่งออก
-
-### 3.4 อัปเกรดแผน
-
-ชนลิมิต → ข้อความอัปเกรด → `/pricing` → Stripe Checkout (ถ้าตั้ง env) / Portal จากหน้าหน่วยงาน
-
-### 3.5 จุดเข้า UI สำคัญ
-
-| จุด | เส้นทาง | บทบาท |
-|-----|---------|--------|
-| หน้าแรก | `/` | สรุป 3 ขั้น + CTA สมัคร/เข้าสู่ระบบ |
-| แดชบอร์ด | `/dashboard` | สถิติ + onboarding หรือเอกสารล่าสุด |
-| เลือกประเภท | `/documents/new` | จุดสร้างหลัก |
-| ประวัติ | `/documents` | ค้นหา / คัดลอก / ลบ |
-| แก้ไข | `/documents/[id]` | ฟอร์ม + พรีวิว |
-| พิมพ์ | `/documents/[id]/print` | A4 สำหรับพิมพ์ |
-| หน่วยงาน | `/org/settings` | เทมเพลต / เชิญ / billing |
-| ราคา | `/pricing` | Free / Pro / Business |
-
-รายละเอียดเพิ่ม: [`USERFLOW.md`](USERFLOW.md)
+รายละเอียด: [`USERFLOW.md`](USERFLOW.md)
 
 ---
 
 ## 4. ประเภทเอกสาร
 
-อ้างอิงคู่มือสารบรรณ / ระเบียบสำนักนายกรัฐมนตรีฯ
-
-| ลำดับ | ประเภท | สถานะในแอป | ชนิดในระบบ |
-|-------|--------|------------|------------|
-| 1 | หนังสือภายนอก (ตราครุฑ) | ✅ พร้อมใช้ | `EXTERNAL` |
-| 2 | หนังสือภายใน (บันทึกข้อความ) | ✅ พร้อมใช้ | `INTERNAL` |
-| 3 | หนังสือประทับตรา | ⏳ เร็วๆ นี้ | (ยังไม่มี) |
-| 4 | หนังสือสั่งการ | ⏳ เร็วๆ นี้ | `ORDER` (เตรียมไว้) |
-| 5 | หนังสือประชาสัมพันธ์ | ⏳ เร็วๆ นี้ | (แยกจาก ORDER) |
-| 6 | หลักฐานในราชการ | ⏳ เร็วๆ นี้ | `CERT` / `MEETING` |
-
-**อย่าผสม** ประกาศ/แถลงการณ์เข้ากับหนังสือสั่งการ
+| ลำดับ | ประเภท | สถานะ | ชนิดในระบบ |
+|-------|--------|--------|------------|
+| 1 | หนังสือภายนอก | ✅ | `EXTERNAL` |
+| 2 | หนังสือภายใน (บันทึกข้อความ) | ✅ | `INTERNAL` |
+| 3 | หนังสือประทับตรา | ⏳ **ถัดไป** | ยังไม่มีใน constants |
+| 4 | หนังสือสั่งการ | ⏳ | `ORDER` |
+| 5 | หนังสือประชาสัมพันธ์ | ⏳ | ยังไม่มี — แยกจาก ORDER |
+| 6 | หลักฐานในราชการ | ⏳ | `CERT` / `MEETING` |
 
 ---
 
 ## 5. แผนราคาและลิมิต
 
-| แผน | ที่นั่ง | เอกสาร/เดือน | PDF | Word | ราคา/เดือน (เตรียมไว้) |
-|-----|--------|--------------|-----|------|------------------------|
+| แผน | ที่นั่ง | เอกสาร/เดือน | PDF | Word | บาท/เดือน |
+|-----|--------|--------------|-----|------|-----------|
 | Free | 3 | 20 | ใช่ | ใช่ | 0 |
-| Pro | 15 | 200 | ใช่ | ใช่ | 990 บาท |
-| Business | 50+ | สูง / เกือบไม่จำกัด | ใช่ | ใช่ | 2,990 บาท |
+| Pro | 15 | 200 | ใช่ | ใช่ | 990 |
+| Business | 50 | 99999 | ใช่ | ใช่ | 2,990 |
 
-Feature gate ในโค้ด: `canCreateDocument`, `canInviteMember`, `canExportWord` / `canExportPdf`  
-Stripe: `/api/stripe/checkout`, `/api/stripe/portal`, `/api/stripe/webhook` — ใช้เมื่อตั้ง
-
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- `STRIPE_PRICE_PRO`
-- `STRIPE_PRICE_BUSINESS`
+Stripe routes: `/api/stripe/checkout` · `/portal` · `/webhook`  
+Env: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_BUSINESS`
 
 ---
 
@@ -148,224 +119,157 @@ Stripe: `/api/stripe/checkout`, `/api/stripe/portal`, `/api/stripe/webhook` — 
 ```mermaid
 flowchart TB
   subgraph client [Next.js Client]
-    Editor[Form + LivePreview]
-    History[DocumentHistory]
+    Editor[Editors]
+    History[Documents]
     OrgUI[Org Settings]
   end
-
   subgraph server [Next.js Server]
     Auth[Auth.js]
-    API[Server Actions / API]
-    Gates[FeatureGates]
-    ExportPDF[PDF + Print]
-    ExportDOCX[DOCX]
+    Actions[Server Actions]
+    Gates[Entitlements]
+    Export[PDF_DOCX]
+    StripeAPI[Stripe]
   end
-
-  subgraph data [SQLite local / Postgres prod]
-    Users[User]
+  subgraph data [SQLite or Postgres]
     Orgs[Organization]
     Docs[Document]
     Usage[UsageMeter]
   end
-
-  Editor --> API
-  History --> API
-  OrgUI --> Auth
-  API --> Gates
+  Editor --> Actions
+  History --> Actions
+  OrgUI --> Actions
+  Actions --> Gates
   Gates --> Docs
-  Gates --> Usage
-  ExportPDF --> Docs
-  ExportDOCX --> Docs
-  Auth --> Users
+  Export --> Docs
+  StripeAPI --> Orgs
+  Auth --> Orgs
 ```
 
-**หลักการ:** ทุกเอกสารผูก `organizationId` — ไม่มี orphan ของผู้ใช้เดี่ยวโดยไม่ผ่านหน่วยงาน
-
-### สแต็กหลัก
-
-| ชั้น | เทคโนโลยี |
-|------|-----------|
-| App | Next.js (App Router) + TypeScript |
-| Auth | Auth.js (NextAuth v5) |
-| DB | Prisma + SQLite (local) / Postgres (prod) |
-| PDF | `@react-pdf/renderer` + หน้าพิมพ์ A4 |
+| ชั้น | ของจริงในโปรเจกต์ |
+|------|-------------------|
+| App | Next.js 16 App Router + TypeScript |
+| UI CSS | `globals.css` utilities (ไม่ใช้ Tailwind package) |
+| Auth | Auth.js v5 + Prisma adapter |
+| DB | Prisma 5 + SQLite local · Postgres optional via Docker |
+| Form | React state ใน editor (ไม่ใช่ react-hook-form) |
+| PDF | `@react-pdf/renderer` + TH Sarabun ใน `public/fonts` |
 | Word | `docx` |
-| Billing | Stripe |
-| ฟอนต์เอกสาร | TH Sarabun / Sarabun + ครุฑ `public/krut.png` |
+| Billing | Stripe SDK |
 
-### โมเดลข้อมูลหลัก
-
-- **User** — อีเมล, ชื่อ, รหัสผ่าน  
-- **Organization** — แผน, seat/doc limit, Stripe customer  
-- **Membership** — OWNER / ADMIN / MEMBER  
-- **Invitation** — token เชิญ  
-- **Document** — type, status, payload JSON  
-- **OrgTemplate** — ค่าเริ่มต้นฟอร์ม  
-- **UsageMeter** — นับเอกสาร/export รายเดือน  
+โมเดลหลัก: User · Organization · Membership · Invitation · Document · OrgTemplate · UsageMeter
 
 ---
 
 ## 7. โครงโฟลเดอร์สำคัญ
 
 ```text
-src/app/
-  page.tsx                 # หน้าแรก
-  login|register|pricing
-  invite/[token]
-  (app)/
-    dashboard/
-    documents/             # รายการ
-    documents/new/         # เลือกประเภท
-    documents/[id]/        # แก้ไข + print
-    org/settings/
-  api/export/{pdf,docx}/
-  api/stripe/{checkout,portal,webhook}/
-src/components/
-  editor/                  # External / Internal
-  documents/               # Preview + PDF
-  billing/
-src/lib/
-  actions/                 # auth, documents, org
-  documents/               # schema, labels, limits, docx
-  entitlements.ts
-  auth.ts / db.ts / stripe.ts
-docs/
-  OVERVIEW.md              # เอกสารนี้
-  PLAN.md                  # แผนดำเนินการละเอียด
-  USERFLOW.md              # เส้นทางผู้ใช้
+src/app/(app)/dashboard|documents|documents/new|documents/[id]|org/settings
+src/app/api/export/{pdf,docx} + api/stripe/{checkout,portal,webhook}
+src/components/editor|documents|billing
+src/lib/actions|documents|entitlements|auth|db|stripe
+docs/OVERVIEW.md | PLAN.md | USERFLOW.md
 prisma/schema.prisma
 ```
 
+รายละเอียดเต็ม: [`PLAN.md` §4](PLAN.md)
+
 ---
 
-## 8. สิ่งที่อัปเดตล่าสุด
-
-### 8.1 Changelog สั้นๆ
+## 8. Changelog
 
 | เวอร์ชัน | วันที่ | สิ่งที่รวม |
 |---------|--------|-----------|
-| 1.0 | 9 ส.ค. 2026 | เอกสารรวม + userflow (`/documents/new`, onboarding แดชบอร์ด) |
-| 1.1 | 9 ส.ค. 2026 | ยืนยันบันทึกข้อความครบ · ล็อกชิ้นถัดไปเป็นหนังสือประทับตรา |
-| 1.2 | 9 ส.ค. 2026 | อัปเดตเอกสารทั้งหมด · เพิ่มหมวดปัญหาที่เจอ / debt ที่รู้แล้ว |
-
-### 8.2 Userflow (PR [#1](https://github.com/akhira022/EasyKrut/pull/1))
-
-1. เพิ่ม `/documents/new` เป็นจุดเลือกประเภทก่อนสร้าง  
-2. แดชบอร์ดว่างแสดง onboarding 3 ขั้น  
-3. รวม CTA สร้างเอกสารจากแดชบอร์ดและประวัติไปทางเดียวกัน  
-4. หน้าแรกสรุป 3 ขั้น + ระบุหนังสือภายนอก/ภายใน  
-5. เพิ่ม `USERFLOW.md` และอ้างอิงจากแผนงาน  
+| 1.0 | 9 ส.ค. 2026 | เอกสารรวม + userflow |
+| 1.1 | 9 ส.ค. 2026 | บันทึกข้อความครบ · ล็อกชิ้นถัดไปประทับตรา |
+| 1.2 | 9 ส.ค. 2026 | หมวดปัญหาที่เจอ |
+| 1.3 | 9 ส.ค. 2026 | **จัดแผนทั้งหมดให้ตรงโค้ด** (สแต็ก, โฟลเดอร์, เฟส, acceptance) |
 
 ---
 
-## 9. ปัญหาที่เจอ (Known issues & lessons)
-
-บันทึกจากรอบพัฒนา/ทดสอบ 9 ส.ค. 2026 — ใช้กันพลาดซ้ำและจัดลำดับแก้
+## 9. ปัญหาที่เจอ (Known issues)
 
 ### 9.1 ผลิตภัณฑ์ / UX
 
-| ปัญหา | ผลกระทบ | สถานะ / แนวทาง |
-|--------|----------|----------------|
-| ก่อนอัปเดต userflow ปุ่มสร้างเอกสารกระจาย (แดชบอร์ดสร้างได้แค่ภายนอก) | ผู้ใช้สับสนว่ามีหนังสือภายในหรือไม่ | ✅ แก้แล้วผ่าน `/documents/new` |
-| หน้าแรก/README ยังพูดแค่หนังสือภายนอก ทั้งที่ภายในพร้อมแล้ว | เอกสารกับของจริงไม่ตรง | ✅ แก้แล้วใน landing + docs |
-| เอกสารใหม่ (`OVERVIEW.md`) อยู่บน PR draft — ยังไม่ขึ้นในโฟลเดอร์ `docs` บน branch หลัก | เปิด GitHub แล้วไม่เห็นไฟล์ | ✅ merge เข้า `cursor/mvp-official-documents` แล้ว |
-| ประเภทที่ยังไม่ทำโชว์ใน UI ไม่ชัด | เสี่ยงเข้าใจว่าใช้ได้แล้ว | ✅ ใช้ป้าย “เร็วๆ นี้” ใน `/documents/new` |
+| ปัญหา | สถานะ |
+|--------|--------|
+| จุดสร้างเอกสารเคยกระจาย / แดชบอร์ดสร้างได้แค่ภายนอก | ✅ แก้ด้วย `/documents/new` |
+| Landing/README พูดแค่ภายนอก | ✅ แก้แล้ว |
+| OVERVIEW อยู่บน PR draft ยังไม่ขึ้น branch หลัก | ✅ merge แล้ว |
+| ประเภทไม่พร้อมต้องติดป้ายชัด | ✅ “เร็วๆ นี้” |
 
-### 9.2 เทคนิค / โค้ด
+### 9.2 เทคนิค
 
-| ปัญหา | ผลกระทบ | สถานะ / แนวทาง |
-|--------|----------|----------------|
-| `eslint`: เรียก `useEffectEvent` (`persist`) นอก Effect ใน `ExternalEditor` / `InternalEditor` | `npm run lint` แดง | ⏳ ควรห่อ save ผ่าน Effect/handler ตามกฎ React |
-| `eslint`: `scripts/seed-demo.js` ใช้ `require()` | lint error | ⏳ เปลี่ยนเป็น ESM import หรือยกเว้นไฟล์ seed |
-| Next.js เตือนว่า `middleware` เลิกใช้ แนะนำ `proxy` | เตือนตอน `next dev` | ⏳ ย้ายตาม codemod เมื่อพร้อม (`middleware-to-proxy`) |
-| PDF / Word layout อาจไม่ตรง HTML preview 100% | เอกสารทางการอาจเพี้ยนเล็กน้อย | ยอมรับใน MVP · เน้น PDF เป็นต้นฉบับ |
-| Stripe ยังไม่ตั้ง env จริง | Checkout/Portal ยังไม่เปิดขาย | ตั้ง keys เมื่อพร้อม Phase 6 |
+| ปัญหา | สถานะ |
+|--------|--------|
+| lint `useEffectEvent` ใน editor | ⏳ debt |
+| seed ใช้ `require()` | ⏳ debt |
+| `middleware` deprecated → `proxy` | ⏳ debt |
+| PDF/Word ≠ HTML 100% | ยอมรับ MVP |
+| Stripe ยังไม่ตั้ง env จริง | ⏳ Phase 6 |
 
-### 9.3 กระบวนการพัฒนา / ทดสอบ
+### 9.3 กระบวนการ
 
-| ปัญหา | ผลกระทบ | สถานะ / แนวทาง |
-|--------|----------|----------------|
-| Browser automation พิมพ์ฟอร์มล็อกอินพลาด (อีเมล/รหัสสลับช่อง) | ทดสอบ UI ช้ามาก ทั้งที่ฟีเจอร์พร้อมแล้ว | ต่อไป smoke ด้วย curl/seed ก่อน · UI automation เป็นรอง |
-| `gh pr merge` บางครั้งขึ้น not mergeable ทั้งที่ diff พร้อม | รวมงานขึ้น branch หลักช้า | ใช้ `git merge` เข้า base แล้ว push ได้เมื่อจำเป็น |
-| ดูโฟลเดอร์ `docs` บนมือถือขณะ PR ยัง draft | คิดว่าไฟล์หาย | ตรวจ branch / merge ก่อน หรือเปิดจาก head ของ PR |
-
-### 9.4 ความเสี่ยงที่ยังค้าง (จากแผน)
-
-| ความเสี่ยง | แนวทาง |
-|------------|--------|
-| Multi-tenant รั่วข้าม org | บังคับ `organizationId` + ตรวจ membership ทุก query |
-| Scope บวมก่อนมีลูกค้า | ทำประเภทเอกสารทีละชนิด · ชิ้นถัดไป = ประทับตราเท่านั้น |
-| ฟอนต์ราชการบนเซิร์ฟเวอร์ | มี TH Sarabun ใน `public/fonts` สำหรับ PDF แล้ว · DOCX พึ่งฟอนต์เครื่อง |
+| ปัญหา | แนวทาง |
+|--------|--------|
+| UI automation ล็อกอินพลาด ทำให้งานดูช้า | smoke ด้วย seed/curl ก่อน |
+| `gh pr merge` ไม่ผ่านบางครั้ง | merge เข้า base ด้วย git ได้ |
+| แผนใน docs ไม่ตรงโค้ด (โฟลเดอร์เก่า, MVP แค่ภายนอก, react-hook-form) | ✅ จัดรอบ v1.3 |
 
 ---
 
-## 10. โรดแมปสั้นๆ
+## 10. โรดแมป
 
-| เฟส | ขอบเขต | สถานะโดยประมาณ |
-|------|--------|----------------|
-| 0 Scaffold | Next + Prisma + ฟอนต์ | ✅ |
-| 1 Auth + Org + Entitlements | สมัคร, invite, แผน | ✅ |
-| 2 หนังสือภายนอกครบวงจร | form / preview / CRUD | ✅ |
-| 3 Export | PDF + Word + usage | ✅ |
-| 4 UX หน่วยงาน | เทมเพลต, autosave, ค้นหา, landing, userflow | ✅ |
-| 5 ประเภทเอกสารเพิ่ม | ภายนอก ✅ · ภายใน (บันทึกข้อความ) ✅ · **ถัดไป: ประทับตรา** | 🔄 |
-| 6 Billing | Stripe โครง ✅ · เปิดขายจริงทีหลัง | 🔄 |
+| เฟส | สถานะ |
+|------|--------|
+| 0–4 Scaffold → UX/userflow | ✅ |
+| 5 ประเภทเอกสาร | 🔄 ภายนอก+ภายใน ✅ · **ถัดไปประทับตรา** |
+| 6 Billing เปิดขาย | 🔄 โครงพร้อม |
 
-### ชิ้นงานถัดไป (ล็อกแล้ว)
+### ชิ้นถัดไป
 
-1. **หนังสือประทับตรา (แบบที่ 3)** — schema + ฟอร์ม + พรีวิว + PDF/Word + เปิดใน `/documents/new`  
-2. หนังสือสั่งการ (เริ่มจากคำสั่ง)  
-3. หนังสือประชาสัมพันธ์ (ประกาศ ฯลฯ — แยกจากสั่งการ)  
-4. หลักฐานในราชการ (รับรอง / รายงานประชุม)  
+1. หนังสือประทับตรา (แบบที่ 3)  
+2. สั่งการ (คำสั่ง)  
+3. ประชาสัมพันธ์  
+4. รับรอง / รายงานประชุม  
 
-### Debt ที่ควรเก็บคู่ขนาน (ไม่บล็อกประทับตรา)
+### Debt คู่ขนาน
 
-- แก้ lint `useEffectEvent` ใน editor  
-- ย้าย `middleware` → `proxy` ตาม Next.js  
-- ปรับ seed script ให้ผ่าน eslint  
+- lint editor · middleware→proxy · seed eslint  
 
 ### นอกขอบเขตตอนนี้
 
-- ใบเสร็จ / ภาษี  
-- e-Signature  
-- แอปมือถือ native  
-- เชื่อมระบบสารบรรณภายนอก  
-- SSO / White-label  
+ใบเสร็จ/ภาษี · e-Sign · SSO · เลขที่รันอัตโนมัติ · แชร์ลิงก์ · API สารบรรณ · White-label · แอปมือถือ · DocumentVersion  
 
 ---
 
-## 10. Acceptance criteria (MVP)
+## 11. Acceptance criteria
 
-1. ผู้ใช้ A สมัครได้ แล้วเชิญผู้ใช้ B เข้า org เดียวกัน  
-2. ทั้งคู่เห็นรายการเอกสารของ org (ตาม role)  
-3. สร้างหนังสือภายนอกแล้ว preview ตรงรูปแบบราชการ  
-4. บันทึกแล้วเปิดแก้ใหม่ได้หลังรีเฟรช  
-5. Export PDF และ Word ได้  
-6. ชนโควตา Free แล้วบล็อกพร้อมข้อความอัปเกรด  
-7. ประเภทที่ยังไม่พร้อมแสดงเป็น “เร็วๆ นี้”  
-8. สร้างเอกสารผ่าน `/documents/new` และแดชบอร์ดว่างมีขั้นตอนเริ่มต้น  
+| # | เกณฑ์ | สถานะ |
+|---|--------|--------|
+| 1–8 | MVP เดิม (สมัคร, เชิญ, ภายนอก, บันทึก, export, ลิมิต, เร็วๆ นี้, userflow) | ✅ |
+| 9 | หนังสือภายในครบวงจร | ✅ |
+| 10 | หนังสือประทับตราครบวงจร | ⏳ |
 
 ---
 
-## 11. ความเสี่ยงหลัก
+## 12. ความเสี่ยงหลัก
 
 | ความเสี่ยง | แนวทาง |
 |------------|--------|
-| Word ไม่ตรง HTML 100% | ยอมรับความใกล้เคียง; เน้น PDF/พิมพ์เป็นต้นฉบับ |
-| ฟอนต์บนเซิร์ฟเวอร์ | รวม TH Sarabun ใน repo สำหรับ PDF |
-| ข้อมูลรั่วข้าม org | บังคับ `organizationId` + ตรวจ membership |
-| Scope บวม | ทำประเภทเอกสารทีละชนิด ไม่ผสมฟอร์ม |
+| Word ≠ HTML | เน้น PDF |
+| รั่วข้าม org | `organizationId` + membership |
+| Scope บวม | ทีละประเภท · ล็อกประทับตรา |
+| แผนไม่ตรงของจริง | อัปเดต PLAN/OVERVIEW คู่ release |
 
 ---
 
-## 12. เอกสารและไฟล์อ้างอิง
+## 13. เอกสารอ้างอิง
 
 | ไฟล์ | เนื้อหา |
 |------|---------|
-| [`OVERVIEW.md`](OVERVIEW.md) | เอกสารรวมฉบับนี้ (สถานะ + userflow + โรดแมป + ปัญหาที่เจอ) |
-| [`PLAN.md`](PLAN.md) | แผนดำเนินการละเอียด / เฟส / เกณฑ์รับงาน |
-| [`USERFLOW.md`](USERFLOW.md) | เส้นทางผู้ใช้ปัจจุบัน |
-| [`../README.md`](../README.md) | วิธีติดตั้งและรัน |
-| `ฉบับเต็มคู่มือการเขียนหนังสือราชการ.pdf` | คู่มือสารบรรณ |
-| `รูปแบบ_หนังสือภายนอก.pdf` | ตัวอย่างรูปแบบภายนอก |
+| [`OVERVIEW.md`](OVERVIEW.md) | เอกสารรวมฉบับนี้ |
+| [`PLAN.md`](PLAN.md) | แผนดำเนินการละเอียด (ตรงโค้ด) |
+| [`USERFLOW.md`](USERFLOW.md) | เส้นทางผู้ใช้ |
+| [`../README.md`](../README.md) | ติดตั้ง / รัน |
+| คู่มือ PDF ใน `docs/` | รูปแบบหนังสือราชการ |
 | `krut-3-cm.png` | ต้นทางตราครุฑ → `public/krut.png` |
