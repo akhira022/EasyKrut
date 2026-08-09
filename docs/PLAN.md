@@ -2,88 +2,116 @@
 
 **ผลิตภัณฑ์:** ระบบสร้างเอกสารราชการอิเล็กทรอนิกส์แบบหลายผู้ใช้ในหน่วยงาน  
 **เป้าหมายธุรกิจ:** เริ่มใช้งานจริงในหน่วยงาน แล้วขยายเป็น SaaS หารายได้ในอนาคต  
-**สถานะต้นทาง:** พอร์ตจาก prototype HTML/JS เดิมเป็น Next.js แล้ว (ไฟล์ต้นฉบับถูกลบ)
+**สถานะโปรเจกต์ (9 ส.ค. 2026):** MVP ใช้งานได้แล้ว — หนังสือภายนอก + หนังสือภายใน (บันทึกข้อความ) + userflow + Stripe โครงพร้อม  
+**Branch หลักงาน:** `cursor/mvp-official-documents`  
+**สแต็กปัจจุบัน:** Next.js 16.3 · React 19 · Prisma 5 · SQLite local · Auth.js v5 · Zod 4 · พอร์ต `3010`
 
-> เอกสารรวมสถานะ + userflow + โรดแมป + ปัญหาที่เจอ: [`OVERVIEW.md`](OVERVIEW.md) (v1.2)
+> เอกสารรวมสถานะ + userflow + ปัญหาที่เจอ: [`OVERVIEW.md`](OVERVIEW.md) (v1.3)
 
 ---
 
-## 1. ตัดสินใจที่ล็อกแล้ว
+## 0. สถานะเฟสรวดเร็ว
 
-| หัวข้อ | ค่าที่เลือก |
-|--------|-------------|
-| ผู้ใช้ | Multi-tenant: หน่วยงาน (Organization) มีหลายบัญชี |
-| ข้อมูล | SQLite (local MVP) — พร้อมสลับ PostgreSQL ในโปรดักชัน |
-| Auth | Auth.js (NextAuth v5) — อีเมล/รหัสผ่าน + invite เข้าหน่วยงาน |
-| MVP เอกสาร | หนังสือภายนอกเท่านั้น ให้ครบ form / preview / บันทึก / PDF / Word |
-| ประเภทอื่น | เฟสถัดไป: ภายใน → ประชุม → สั่งการ → รับรอง |
-| Export PDF | `@react-pdf/renderer` + หน้าพิมพ์ A4 (CSS) |
-| Export Word | ไลบรารี `docx` ผ่าน Route Handler |
+| เฟส | ขอบเขต | สถานะ |
+|------|--------|--------|
+| 0 Scaffold | Next App Router, Prisma, ฟอนต์, CSS A4 | ✅ เสร็จ |
+| 1 Auth + Org + Entitlements | สมัคร, session, invite, แผน Free/Pro/Business | ✅ เสร็จ |
+| 2 หนังสือภายนอก | schema, editor, preview, CRUD | ✅ เสร็จ |
+| 3 Export | PDF (`@react-pdf/renderer`), print A4, DOCX, UsageMeter | ✅ เสร็จ |
+| 4 UX หน่วยงาน | เทมเพลต, autosave, ค้นหา, duplicate, landing, pricing, `/documents/new` | ✅ เสร็จ |
+| 5 ประเภทเอกสารเพิ่ม | ภายใน ✅ · **ถัดไป: ประทับตรา** · สั่งการ · ประชาสัมพันธ์ · รับรอง/ประชุม | 🔄 กำลังทำ |
+| 6 Billing จริง | เปิด Stripe env + conversion | 🔄 โครงโค้ดพร้อม / ยังไม่เปิดขาย |
+
+**ชิ้นงานถัดไปที่ล็อก:** หนังสือประทับตรา (แบบที่ 3)
+
+---
+
+## 1. ตัดสินใจที่ล็อกแล้ว (อัปเดตตามของจริง)
+
+| หัวข้อ | ค่าที่เลือก / สถานะ |
+|--------|---------------------|
+| ผู้ใช้ | Multi-tenant: Organization มีหลายบัญชี |
+| ข้อมูล local | **SQLite** (`prisma/dev.db`) — Postgres ผ่าน `docker compose` เมื่อพร้อมโปรดักชัน |
+| Auth | Auth.js (NextAuth v5) — อีเมล/รหัสผ่าน + invite token |
+| เอกสารพร้อมใช้ | **EXTERNAL** + **INTERNAL** ครบ form / preview / บันทึก / PDF / Word |
+| ประเภทถัดไป | ประทับตรา (`STAMP` ยังไม่มีใน constants) → ORDER → ประชาสัมพันธ์ → CERT/MEETING |
+| Export PDF | `@react-pdf/renderer` + หน้า `/documents/[id]/print` |
+| Export Word | `docx` ผ่าน `/api/export/docx` |
+| ฟอร์ม editor | React state ใน `ExternalEditor` / `InternalEditor` (ไม่ได้ใช้ react-hook-form) |
+| สไตล์ UI | CSS utilities ใน `globals.css` + next/font (Kanit, Sarabun) — ไม่ได้ใช้ Tailwind package |
 | หารายได้ | schema + feature gate + Stripe Checkout/Portal/Webhook (เปิดเมื่อตั้ง env) |
-| Userflow | ดู [`docs/USERFLOW.md`](USERFLOW.md) — จุดสร้างเอกสารผ่าน `/documents/new` |
-| Prototype เดิม | อ้างอิง layout/UX แล้วสร้างแอป Next.js ใหม่ใน repo (ไม่ต่อ PHP) |
+| Userflow | จุดสร้างรวมที่ `/documents/new` — ดู [`USERFLOW.md`](USERFLOW.md) |
+| Prototype เดิม | ลบแล้ว — อ้างอิง layout จาก docs/คู่มือ ไม่ต่อ PHP |
 | ตราครุฑ | `docs/krut-3-cm.png` → `public/krut.png` |
+| พอร์ต dev | `3010` (`AUTH_URL` ต้องตรง) |
 
 ---
 
-## 2. สถาปัตยกรรมภาพรวม
+## 2. สถาปัตยกรรมภาพรวม (ตรงกับโค้ด)
 
 ```mermaid
 flowchart TB
   subgraph client [Next.js Client]
-    Editor[Form_plus_LivePreview]
-    History[DocumentHistory]
-    OrgUI[Org_Members_Settings]
+    Landing[Landing_Pricing]
+    Editor[External_Internal_Editor]
+    History[Documents_List]
+    OrgUI[Org_Settings_Invite_Template]
   end
 
   subgraph server [Next.js Server]
     Auth[Auth.js]
-    API[Server_Actions_and_API]
-    Gates[FeatureGates_PlanLimits]
-    ExportPDF[Print_A4_Route]
-    ExportDOCX[DOCX_Route]
+    Actions[Server_Actions]
+    Gates[entitlements.ts]
+    ExportPDF[api_export_pdf_plus_print]
+    ExportDOCX[api_export_docx]
+    StripeAPI[api_stripe]
   end
 
-  subgraph data [PostgreSQL]
+  subgraph data [SQLite_local_or_Postgres]
     Users[User]
     Orgs[Organization]
     Members[Membership]
+    Invites[Invitation]
     Docs[Document]
-    Plans[Plan_Subscription_ready]
+    Template[OrgTemplate]
     Usage[UsageMeter]
   end
 
-  Editor --> API
-  History --> API
-  OrgUI --> Auth
-  API --> Gates
+  Landing --> Auth
+  Editor --> Actions
+  History --> Actions
+  OrgUI --> Actions
+  Actions --> Gates
   Gates --> Docs
   Gates --> Usage
-  API --> Orgs
+  Actions --> Orgs
+  ExportPDF --> Docs
   ExportDOCX --> Docs
-  ExportPDF --> Editor
+  StripeAPI --> Orgs
   Auth --> Users
   Members --> Orgs
-  Plans --> Orgs
+  Template --> Orgs
 ```
 
-**หลักการ:** ทุกเอกสารผูกกับ `organizationId` — ไม่มีเอกสาร orphan ของผู้ใช้เดี่ยวที่ไม่ผ่านหน่วยงาน (ผู้ใช้ใหม่สร้าง org ส่วนตัวอัตโนมัติตอนสมัคร เพื่อรองรับทั้งบุคคลและทีม)
+**หลักการ:** ทุกเอกสารผูก `organizationId` — สมัครแล้วสร้าง org + Membership OWNER อัตโนมัติ
 
 ---
 
-## 3. โมเดลข้อมูล (Prisma — เตรียม monetization)
+## 3. โมเดลข้อมูล (Prisma จริง)
+
+อ้างอิง `prisma/schema.prisma` — ไม่มีตาราง `DocumentVersion` / `PlanDefinition` (แผนอยู่ในโค้ด `entitlements.ts`)
 
 ```text
 User
-  id, email, name, passwordHash, createdAt
+  id, email, name, passwordHash, createdAt, updatedAt
+  (+ Account / Session สำหรับ Auth.js adapter)
 
 Organization
   id, name, slug
-  planKey          // "free" | "pro" | "business" (default free)
-  seatLimit        // จากแผน
-  docLimitMonthly  // จากแผน
-  stripeCustomerId // null จนกว่าจะเปิด billing
-  createdAt
+  planKey          // "free" | "pro" | "business"
+  seatLimit, docLimitMonthly
+  stripeCustomerId // null จนกว่าเปิด billing
+  createdAt, updatedAt
 
 Membership
   id, userId, organizationId
@@ -96,200 +124,175 @@ Invitation
 Document
   id, organizationId, createdById
   type             // EXTERNAL | INTERNAL | MEETING | ORDER | CERT
-  title            // จากเรื่อง / ชื่อไฟล์แสดง
-  status           // DRAFT | FINAL
-  payload          // Json — ฟิลด์ฟอร์มตามประเภท
+                   // (STAMP / PR ยังไม่มีใน constants — เพิ่มเมื่อเริ่มทำ)
+  title, status    // DRAFT | FINAL
+  payload          // JSON string
   createdAt, updatedAt
 
-DocumentVersion    // optional Phase 2+
-  id, documentId, payload, createdById, createdAt
+OrgTemplate
+  agencyName, agencyAddress, contactUnit, docNumPrefix
+  tel, fax, email  (+ department legacy)
 
 UsageMeter
-  id, organizationId, yearMonth  // "2026-08"
+  organizationId, yearMonth
   docsCreated, exportsCount
   unique(organizationId, yearMonth)
-
-PlanDefinition     // seed ในโค้ดหรือตาราง
-  key, name, seatLimit, docLimitMonthly, exportWord, exportPdf, priceMonthly
 ```
 
-**Feature gate (โค้ดกลาง):** `canCreateDocument(org)`, `canExportWord(org)`, `canInviteMember(org)` อ่านจาก `planKey` + `UsageMeter` — UI แสดง upgrade hint เมื่อชนเพดาน โดยยังไม่ต้องมีหน้าชำระเงินใน MVP
+**Feature gate:** `canCreateDocument`, `canInviteMember`, `canExportWord`, `canExportPdf` ใน `src/lib/entitlements.ts`
 
-### แผนราคาที่เตรียมไว้ (ยังไม่เปิดขาย)
+### แผนราคา (จากโค้ด)
 
-| แผน | ที่นั่ง | เอกสาร/เดือน | PDF | Word | หมายเหตุ |
-|-----|--------|--------------|-----|------|----------|
-| Free | 3 | 20 | ใช่ | ใช่ (watermark อ่อนในอนาคตได้) | ทดลองหน่วยงานเล็ก |
-| Pro | 15 | 200 | ใช่ | ใช่ | เป้าหมายหารายได้หลัก |
-| Business | 50+ | ไม่จำกัด / สูง | ใช่ | ใช่ | เทมเพลตหน่วยงาน + SSO ภายหลัง |
+| แผน | ที่นั่ง | เอกสาร/เดือน | PDF | Word | บาท/เดือน |
+|-----|--------|--------------|-----|------|-----------|
+| Free | 3 | 20 | ใช่ | ใช่ | 0 |
+| Pro | 15 | 200 | ใช่ | ใช่ | 990 |
+| Business | 50 | 99999 | ใช่ | ใช่ | 2,990 |
 
 ---
 
-## 4. โครงโฟลเดอร์แอป Next.js
+## 4. โครงโฟลเดอร์จริง
 
 ```text
-apps/web หรือ root next app/
-  app/
-    (marketing)/page.tsx          # หน้าแรก / ราคา (stub)
-    (auth)/login|register|invite
-    (app)/
-      layout.tsx                  # ต้อง login
-      dashboard/page.tsx
-      documents/
-        page.tsx                  # ประวัติ
-        new/page.tsx              # สร้างใหม่
-        [id]/page.tsx            # แก้ไข
-        [id]/print/page.tsx      # หน้าพิมพ์ A4
-      org/
-        settings/page.tsx
-        members/page.tsx
-      api/export/docx/route.ts
-  components/
-    editor/FormPanel.tsx
-    editor/PreviewPanel.tsx
-    documents/ExternalLetter.tsx
-  lib/
-    thai.ts                       # toThaiNumber, getThaiDate จาก script.js
-    documents/registry.ts
-    documents/external/schema.ts
-    auth.ts
-    entitlements.ts               # feature gates
-    db.ts
-  prisma/schema.prisma
-  public/krut.png
+src/app/
+  page.tsx                          # หน้าแรก
+  login/ page.tsx
+  register/ page.tsx
+  pricing/ page.tsx
+  invite/[token]/                   # รับคำเชิญ
+  (app)/
+    layout.tsx                      # ต้อง login
+    dashboard/page.tsx
+    documents/
+      page.tsx                      # ประวัติ + ค้นหา
+      new/page.tsx                  # เลือกประเภท
+      [id]/page.tsx                 # แก้ไข
+      [id]/print/                   # พิมพ์ A4
+    org/settings/                   # เทมเพลต + สมาชิก + invite + billing
+                                    # (ไม่มี members/page.tsx แยก)
+  api/
+    auth/[...nextauth]/
+    export/pdf|docx/
+    stripe/checkout|portal|webhook/
+src/components/
+  editor/ExternalEditor.tsx | InternalEditor.tsx
+  documents/*Preview.tsx + pdf/*
+  billing/*
+src/lib/
+  actions/{auth,documents,org}.ts
+  documents/{external,internal}/{schema,docx}.ts
+  documents/{labels,limits,payload,build-pdf}.ts
+  entitlements.ts, auth.ts, db.ts, stripe.ts, thai.ts, mail.ts
+src/middleware.ts                   # เตือน deprecated → ย้ายเป็น proxy ภายหลัง
+prisma/schema.prisma
+public/krut.png + public/fonts/THSarabun*
+docs/OVERVIEW.md | PLAN.md | USERFLOW.md
 ```
 
-พอร์ต logic จาก [`script.js`](../script.js): header ครุฑ / วันที่ พ.ศ. / เรื่อง·เรียน·อ้างถึง·สิ่งที่ส่งมาด้วย / ย่อหน้าเยื้อง 2.5cm / ลงท้าย·ลายเซ็น / ติดต่อท้ายกระดาษ
-
 ---
 
-## 5. ฟีเจอร์ที่ควรมี (จัดกลุ่ม)
+## 5. ฟีเจอร์ — สถานะเทียบแผน
 
-### 5.1 Must-have — MVP (Phase 1–3)
+### 5.1 Must-have (Phase 1–3) — ✅ ครบ
 
 - สมัคร / เข้าสู่ระบบ / ออกจากระบบ  
-- สร้างหน่วยงานอัตโนมัติตอนสมัคร + เชิญสมาชิกด้วยอีเมล  
-- บทบาท OWNER / ADMIN / MEMBER (MEMBER สร้าง/แก้เอกสารของตัวเอง; ADMIN ดูเอกสารใน org)  
-- สร้าง·แก้ไข **หนังสือภายนอก** แบบ form ↔ preview สด (คง UX จาก prototype)  
-- แปลงเลขไทย + วันที่ พ.ศ.  
-- เพิ่มย่อหน้าได้หลายช่อง  
-- บันทึก DRAFT / ทำเครื่องหมาย FINAL  
-- รายการประวัติเอกสารในหน่วยงาน (ค้นหาตามเรื่อง, วันที่, ผู้สร้าง)  
-- Export PDF ผ่านหน้าพิมพ์มาตรฐาน A4  
-- Export Word (`.docx`) ตาม layout ภายนอก  
-- Zoom ดูขนาดจริง A4  
-- จำกัดตามแผน Free ผ่าน feature gate (แม้ยังไม่เก็บเงิน)
+- สร้างหน่วยงานอัตโนมัติ + เชิญสมาชิก  
+- บทบาท OWNER / ADMIN / MEMBER  
+- หนังสือภายนอก form ↔ preview สด  
+- เลขไทย + วันที่ พ.ศ.  
+- ย่อหน้าหลายช่อง / DRAFT–FINAL  
+- ประวัติเอกสาร + ค้นหา  
+- Export PDF + Word  
+- Zoom A4 / feature gate Free  
 
-### 5.2 Should-have — หลัง MVP ไม่นาน (Phase 4)
+### 5.2 Should-have (Phase 4) — ✅ ส่วนใหญ่ครบ
 
-- เทมเพลตหน่วยงาน: ส่วนราชการเจ้าของหนังสือ, ที่ตั้ง, ส่วนราชการเจ้าของเรื่อง, โทร, อีเมล, คำนำหน้าเลขที่หนังสือ  
-- คัดลอกเอกสารเป็นฉบับใหม่  
-- Autosave ทุก N วินาที  
-- ประวัติเวอร์ชันย่อ (DocumentVersion)  
-- พิมพ์เฉพาะหน้าเอกสาร (ซ่อน UI)  
-- Responsive: มือถือสลับแท็บ Form / Preview  
+| รายการ | สถานะ |
+|--------|--------|
+| เทมเพลตหน่วยงาน | ✅ |
+| คัดลอกเอกสาร | ✅ |
+| Autosave | ✅ (~20 วินาที) |
+| พิมพ์หน้าเอกสาร | ✅ `/print` |
+| Responsive แท็บ Form/Preview | ✅ ใน editor |
+| จุดสร้าง `/documents/new` + onboarding | ✅ |
+| Landing + Pricing | ✅ |
+| DocumentVersion (ประวัติเวอร์ชัน) | ❌ ยังไม่ทำ — เลื่อน |
 
-### 5.3 Document types — ตามคู่มือ 6 ชนิด (Phase 5)
+### 5.3 Document types (Phase 5)
 
-อ้างอิง [`docs/ฉบับเต็มคู่มือการเขียนหนังสือราชการ.pdf`](ฉบับเต็มคู่มือการเขียนหนังสือราชการ.pdf) และระเบียบสำนักนายกรัฐมนตรีว่าด้วยงานสารบรรณ พ.ศ. 2526
+| ลำดับ | ประเภท | สถานะ | ชนิดในระบบ |
+|-------|--------|--------|------------|
+| 1 | หนังสือภายนอก | ✅ | `EXTERNAL` |
+| 2 | หนังสือภายใน (บันทึกข้อความ) | ✅ | `INTERNAL` |
+| 3 | หนังสือประทับตรา | ⏳ **ถัดไป** | ยังไม่มี — จะเพิ่ม เช่น `STAMP` |
+| 4 | หนังสือสั่งการ | ⏳ | `ORDER` (มีใน constants แล้ว) |
+| 5 | หนังสือประชาสัมพันธ์ | ⏳ | ยังไม่มี — แยกจาก ORDER |
+| 6 | หลักฐานในราชการ | ⏳ | `CERT` / `MEETING` |
 
-| ลำดับ | ประเภท | ชนิดย่อย / หมายเหตุ | Prisma type (เมื่อสร้าง) |
-|-------|--------|---------------------|--------------------------|
-| 1 | หนังสือภายนอก | แบบที่ 1 กระดาษตราครุฑ — MVP ปรับให้ครบข้อ 11 แล้ว | EXTERNAL |
-| 2 | หนังสือภายใน | บันทึกข้อความ (แบบที่ 2) | INTERNAL |
-| 3 | หนังสือประทับตรา | แบบที่ 3 — ใช้แทนการลงชื่อในเรื่องไม่สำคัญ | STAMP *(ยังไม่มีในโค้ด)* |
-| 4 | หนังสือสั่งการ | คำสั่ง → ระเบียบ → ข้อบังคับ | ORDER (เริ่มจากคำสั่ง) |
-| 5 | หนังสือประชาสัมพันธ์ | ประกาศ → แถลงการณ์ → ข่าว | PR *(แยกจาก ORDER)* |
-| 6 | หลักฐานในราชการ | หนังสือรับรอง, รายงานประชุม, บันทึก, หนังสืออื่น | CERT / MEETING |
+**กฎ:** แต่ละประเภท = Zod schema + Editor + Preview + PDF + DOCX แยกกัน · อย่าผสมประกาศเข้า ORDER
 
-**อย่าผสม** ประกาศ/แถลงการณ์เข้ากับ ORDER — สั่งการ ≠ ประชาสัมพันธ์
+**หนังสือภายนอกที่รองรับแล้ว:** ชั้นความเร็ว, ส่วนราชการ+ที่ตั้ง, เรื่อง, คำขึ้นต้น, อ้างถึง/สิ่งที่ส่งมาด้วย, ข้อความ, คำลงท้าย, ชื่อในวงเล็บ, ตำแหน่ง, ส่วนราชการเจ้าของเรื่อง, โทร./โทรสาร/อีเมล, สำเนาส่ง
 
-แต่ละประเภท = schema Zod + Form + Preview ใน `registry` — ไม่แชร์ฟอร์มภายนอกทั้งก้อน
+### 5.4 Monetization (Phase 6) — โครง ✅ / เปิดขาย ⏳
 
-**หนังสือภายนอก (ข้อ 11) ที่รองรับแล้ว:** ชั้นความเร็ว, ส่วนราชการ+ที่ตั้ง, เรื่อง, คำขึ้นต้น, อ้างถึง/สิ่งที่ส่งมาด้วย (หลายรายการ), ข้อความ, คำลงท้าย, ชื่อเต็มในวงเล็บ, ตำแหน่ง, ส่วนราชการเจ้าของเรื่อง, โทร./โทรสาร/อีเมล, สำเนาส่ง
+- ✅ หน้า `/pricing`  
+- ✅ `/api/stripe/checkout|portal|webhook`  
+- ✅ Usage ในหน้าหน่วยงาน  
+- ✅ Soft paywall เมื่อชนลิมิต  
+- ⏳ ตั้ง Stripe env จริง + products  
+- ❌ watermark Free / ใบเสร็จภาษี  
 
-### 5.4 Monetization-ready — โครงไว้ก่อน เปิดขายทีหลัง (Phase 6)
+Env ที่ต้องมีเมื่อเปิดขาย: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_BUSINESS`
 
-- หน้า Pricing (เนื้อหาแผน Free/Pro/Business)  
-- Stripe Customer + Checkout + Customer Portal (เมื่อพร้อม)  
-- Webhook อัปเดต `planKey`, `seatLimit`, `docLimitMonthly`  
-- Usage dashboard ในหน้า org settings  
-- Soft paywall: ปุ่ม “อัปเกรด” เมื่อชนลิมิต  
-- (ภายหลัง) watermark PDF แผน Free, ลบเมื่อเป็น Pro  
-- (ภายหลัง) ออกใบเสร็จ / ภาษี ตามตลาดไทยถ้าจำเป็น  
+### 5.5 Later / ขยายตลาด — ❌
 
-### 5.5 Later / ขยายตลาด
-
-- SSO / ผูก Google Workspace  
-- e-Signature / แนบลายเซ็นรูป  
-- เลขที่หนังสือรันอัตโนมัติต่อปีงบประมาณ  
-- แชร์ลิงก์อ่านอย่างเดียว  
-- API สำหรับระบบสารบรรณภายนอก  
-- White-label หน่วยงานใหญ่  
+SSO, e-Signature, เลขที่รันอัตโนมัติ, แชร์ลิงก์, API สารบรรณ, White-label, แอปมือถือ native
 
 ---
 
-## 6. เฟสดำเนินการ
+## 6. รายละเอียดเฟส + ของที่เหลือ
 
-### Phase 0 — Scaffold (1–2 วัน)
-- สร้าง Next.js App Router + TypeScript + Tailwind  
-- Prisma + PostgreSQL (local Docker หรือ Neon)  
-- ESLint, path aliases, ฟอนต์ Kanit + Sarabun  
-- ย้ายสไตล์เอกสารจาก [`style.css`](../style.css) เป็น module/CSS สำหรับ A4  
+### Phase 0–4 — ✅ ปิดแล้ว
 
-### Phase 1 — Auth + Organization + Entitlements (3–5 วัน)
-- Auth.js credentials + session  
-- Register → สร้าง User + Organization + Membership OWNER  
-- Invite flow (token)  
-- `entitlements.ts` + seed แผน Free/Pro/Business  
-- หน้า dashboard ว่าง + org settings พื้นฐาน  
+ดูประวัติ commit บน `cursor/mvp-official-documents` (MVP → internal → PDF fonts → userflow → docs)
 
-### Phase 2 — หนังสือภายนอกครบวงจร (4–6 วัน)
-- Zod schema + react-hook-form  
-- `ExternalLetter` preview (พอร์ตจาก script.js)  
-- CRUD Document (`payload` JSON)  
-- หน้าประวัติ + เปิดแก้ + สร้างใหม่  
-- ตรวจ `canCreateDocument` ก่อนสร้าง  
+### Phase 5 — 🔄 กำลังทำ
 
-### Phase 3 — Export (2–4 วัน)
-- `/documents/[id]/print` + print CSS (margin 3cm/2cm, 16pt)  
-- API DOCX ด้วย `docx` + ฟอนต์ TH SarabunPSK ตามที่เครื่องรองรับ  
-- นับ `UsageMeter.exportsCount`  
-- ปุ่มใน editor เชื่อม export  
+ลำดับบังคับ:
+1. **ประทับตรา** (แบบที่ 3) — schema + form + preview + PDF/Word + เปิดใน `/documents/new`  
+2. สั่งการ (เริ่มคำสั่ง)  
+3. ประชาสัมพันธ์ (ประกาศ)  
+4. รับรอง / รายงานประชุม  
 
-### Phase 4 — UX หน่วยงาน (2–3 วัน)
-- Org templates (ค่าเริ่มต้นฟอร์ม)  
-- Autosave, duplicate, ค้นหาประวัติ  
-- Marketing landing + pricing stub (ยังไม่ชำระเงิน)  
+### Phase 6 — 🔄 พร้อมเปิดเมื่อมีลูกค้าจ่ายเงิน
 
-### Phase 5 — ประเภทเอกสารเพิ่ม (ทีละประเภท ตามอนุกรมคู่มือ)
-- ภายใน (บันทึกข้อความ) ✅ แล้ว  
-- **ถัดไป:** ประทับตรา → สั่งการ (คำสั่ง) → ประชาสัมพันธ์ (ประกาศ) → รับรอง → รายงานประชุม  
-- แต่ละประเภท: schema + form + preview + docx/pdf template  
-- อัปเดต `DocumentType` เมื่อเริ่มสร้างประเภทนั้นจริง (อย่ารวมประกาศเข้า ORDER) 
+1. สร้าง Stripe products/prices  
+2. ใส่ env + ทดสอบ webhook  
+3. บังคับลิมิต + ข้อความอัปเกรดบน production  
+4. (ภายหลัง) วัด conversion: `hit_limit`, `checkout_started`
 
-### Phase 6 — Billing
-- Stripe products ตาม PlanDefinition  
-- Checkout + webhook + portal  
-- บังคับลิมิตจริง + ข้อความอัปเกรด  
-- วิเคราะห์ conversion (เหตุการณ์: hit_limit, checkout_started)  
+### Debt คู่ขนาน (ไม่บล็อกประทับตรา)
 
-**สถานะโค้ด:** Checkout `/api/stripe/checkout`, Portal `/api/stripe/portal`, Webhook `/api/stripe/webhook` พร้อมแล้ว — เปิดใช้เมื่อตั้ง `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_BUSINESS` ใน `.env`  
+1. แก้ lint `useEffectEvent` ใน editor  
+2. ย้าย `middleware` → `proxy` (Next.js 16)  
+3. ปรับ `scripts/seed-demo.js` ให้ผ่าน eslint  
 
 ---
 
-## 7. Acceptance criteria — MVP พร้อมใช้งานหน่วยงาน
+## 7. Acceptance criteria — สถานะตรวจ
 
-1. ผู้ใช้ A สมัครได้ แล้วเชิญผู้ใช้ B เข้า org เดียวกัน  
-2. ทั้งคู่เห็นรายการเอกสารของ org (ตาม role)  
-3. สร้างหนังสือภายนอกแล้ว preview ตรงกับรูปแบบราชการ (ครุฑ, พ.ศ., เลขไทย, margin)  
-4. บันทึกแล้วเปิดแก้ใหม่ได้ ไม่หายหลังรีเฟรช  
-5. Export PDF (พิมพ์) และ Word ใช้งานได้จากเอกสารที่บันทึก  
-6. เมื่อสร้างครบโควตา Free ระบบบล็อกพร้อมข้อความอัปเกรด (แม้ยังไม่มี Stripe)  
-7. ประเภทเอกสารอื่นใน UI แสดงเป็น “เร็วๆ นี้” หรือซ่อน — ไม่ทำให้เข้าใจว่าใช้ได้แล้ว  
-8. Userflow สร้างเอกสารผ่าน `/documents/new` และแดชบอร์ดว่างแสดงขั้นตอนเริ่มต้นใช้งาน  
-
-รายละเอียดเส้นทางผู้ใช้ปัจจุบัน: [`docs/USERFLOW.md`](USERFLOW.md)
+| # | เกณฑ์ | สถานะ |
+|---|--------|--------|
+| 1 | สมัคร + เชิญเข้า org เดียวกัน | ✅ |
+| 2 | เห็นเอกสารตาม role | ✅ |
+| 3 | หนังสือภายนอก preview ตรงรูปแบบ | ✅ |
+| 4 | บันทึกแล้วเปิดแก้ได้หลังรีเฟรช | ✅ |
+| 5 | Export PDF + Word | ✅ |
+| 6 | ชนโควตา Free แล้วบล็อก + อัปเกรด | ✅ |
+| 7 | ประเภทไม่พร้อมแสดง “เร็วๆ นี้” | ✅ |
+| 8 | สร้างผ่าน `/documents/new` + onboarding | ✅ |
+| 9 | หนังสือภายใน (บันทึกข้อความ) ครบวงจร | ✅ |
+| 10 | หนังสือประทับตรา ครบวงจร | ⏳ ถัดไป |
 
 ---
 
@@ -297,35 +300,35 @@ apps/web หรือ root next app/
 
 | ความเสี่ยง | แนวทาง |
 |------------|--------|
-| Layout Word ไม่ตรง HTML 100% | ยอมรับความใกล้เคียงใน MVP; เน้น PDF/พิมพ์เป็นต้นฉบับทางการ |
-| ฟอนต์ราชการบนเซิร์ฟเวอร์ | ใส่ไฟล์ฟอนต์ใน repo สำหรับ PDF ภายหลัง; DOCX พึ่งฟอนต์เครื่องผู้ใช้ |
-| Multi-tenant รั่วข้อมูลข้าม org | บังคับ `organizationId` ในทุก query + ตรวจ membership ใน server |
-| Scope บวมก่อนมีลูกค้า | ล็อกประเภทเอกสารทีละชนิด; ชิ้นถัดไป = ประทับตราเท่านั้น |
-| Prototype PHP/Quill สับสน | ไม่พอร์ต `export.php`; เขียน export ใหม่ใน Next |
-| Lint `useEffectEvent` ใน editor | ห้ามเรียกนอก Effect — เก็บเป็น debt ก่อนทำประเภทใหม่ |
-| Next.js `middleware` deprecated | วางแผนย้ายเป็น `proxy` ตาม docs ของ Next |
-| เอกสารบน PR draft ยังไม่ขึ้น branch หลัก | merge ให้จบก่อนบอกว่า “มีไฟล์ใน docs แล้ว” |
+| Layout Word ≠ HTML 100% | ยอมรับ MVP · เน้น PDF เป็นต้นฉบับ |
+| ฟอนต์บนเซิร์ฟเวอร์ | มี TH Sarabun ใน `public/fonts` แล้ว |
+| Multi-tenant รั่วข้าม org | บังคับ `organizationId` + membership ทุก query |
+| Scope บวม | ทำทีละประเภท · ชิ้นถัดไป = ประทับตราเท่านั้น |
+| เอกสารแผนไม่ตรงโค้ด | อัปเดต PLAN/OVERVIEW คู่กับของจริง (รอบนี้ v1.3) |
+| Lint / middleware debt | เก็บคู่ขนาน ไม่บล็อกฟีเจอร์เอกสาร |
+| Stripe ยังไม่ตั้ง env | อย่าเคลมว่า “เปิดขายแล้ว” จนกว่าใส่ keys |
 
-รายละเอียดปัญหาที่เจอรอบล่าสุด: [`OVERVIEW.md` §9](OVERVIEW.md)
-
----
-
-## 9. ลำดับงานเริ่มโค้ดทันทีหลังอนุมัติแผน
-
-1. Scaffold Next.js ใน repo (เก็บ `docs/` + อ้างอิงไฟล์ prototype)  
-2. Prisma schema ตามข้อ 3  
-3. Auth + org bootstrap  
-4. External editor + preview  
-5. Save/list  
-6. Print PDF + DOCX  
-7. Feature gates ตามแผน Free  
+ปัญหาที่เจอรอบล่าสุด: [`OVERVIEW.md` §9](OVERVIEW.md)
 
 ---
 
-## 10. นอกขอบเขต MVP (ตั้งใจเลื่อน)
+## 9. งานถัดไปตอนนี้ (ลำดับลงมือ)
 
-- Stripe จริง / ใบเสร็จ  
-- e-Signature  
-- รายงานการประชุมและประเภทอื่น  
+1. ออกแบบ schema หนังสือประทับตรา (แบบที่ 3 ตามคู่มือ)  
+2. เพิ่มชนิดใน `DocumentType` + labels + `/documents/new`  
+3. Editor + Preview + PDF + DOCX  
+4. ทดสอบสร้าง/บันทึก/ส่งออก  
+5. อัปเดต OVERVIEW/PLAN/USERFLOW หลังปิดชิ้น  
+6. (คู่ขนาน) เก็บ lint / middleware debt  
+
+---
+
+## 10. นอกขอบเขตตอนนี้
+
+- Stripe เปิดขายจริง / ใบเสร็จ / ภาษี  
+- DocumentVersion  
+- e-Signature / SSO  
+- เลขที่หนังสือรันอัตโนมัติ  
+- แชร์ลิงก์อ่านอย่างเดียว  
+- API สารบรรณภายนอก / White-label  
 - แอปมือถือ native  
-- เชื่อมระบบสารบรรณภายนอก  
