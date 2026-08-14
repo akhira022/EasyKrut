@@ -1,8 +1,12 @@
 import { notFound } from "next/navigation";
 import { DocumentType } from "@/lib/constants";
 import {
+  parseAnnouncePayload,
+  parseCertPayload,
   parseExternalPayload,
   parseInternalPayload,
+  parseMeetingPayload,
+  parseOrderPayload,
   parseStampPayload,
 } from "@/lib/documents/payload";
 import { canExportPdf } from "@/lib/entitlements";
@@ -36,15 +40,13 @@ export default async function PrintPage({
       documentId={doc.id}
       title={doc.title}
       type={doc.type}
-      internalData={
-        doc.type === DocumentType.INTERNAL ? parseInternalPayload(doc.payload) : undefined
-      }
-      stampData={
-        doc.type === DocumentType.STAMP ? parseStampPayload(doc.payload) : undefined
-      }
-      externalData={
-        doc.type === DocumentType.EXTERNAL ? parseExternalPayload(doc.payload) : undefined
-      }
+      externalData={doc.type === DocumentType.EXTERNAL ? parseExternalPayload(doc.payload) : undefined}
+      internalData={doc.type === DocumentType.INTERNAL ? parseInternalPayload(doc.payload) : undefined}
+      stampData={doc.type === DocumentType.STAMP ? parseStampPayload(doc.payload) : undefined}
+      orderData={doc.type === DocumentType.ORDER ? parseOrderPayload(doc.payload) : undefined}
+      announceData={doc.type === DocumentType.ANNOUNCE ? parseAnnouncePayload(doc.payload) : undefined}
+      certData={doc.type === DocumentType.CERT ? parseCertPayload(doc.payload) : undefined}
+      meetingData={doc.type === DocumentType.MEETING ? parseMeetingPayload(doc.payload) : undefined}
     />
   );
 }

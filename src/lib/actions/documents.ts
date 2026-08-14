@@ -15,6 +15,26 @@ import {
   stampDocumentTitle,
   stampLetterSchema,
 } from "@/lib/documents/stamp/schema";
+import {
+  emptyOrderLetter,
+  orderDocumentTitle,
+  orderLetterSchema,
+} from "@/lib/documents/order/schema";
+import {
+  emptyAnnounceLetter,
+  announceDocumentTitle,
+  announceLetterSchema,
+} from "@/lib/documents/announce/schema";
+import {
+  emptyCertLetter,
+  certDocumentTitle,
+  certLetterSchema,
+} from "@/lib/documents/cert/schema";
+import {
+  emptyMeetingLetter,
+  meetingDocumentTitle,
+  meetingLetterSchema,
+} from "@/lib/documents/meeting/schema";
 import { stringifyPayload } from "@/lib/documents/payload";
 import { DocumentStatus, DocumentType } from "@/lib/constants";
 import { canCreateDocument } from "@/lib/entitlements";
@@ -341,6 +361,210 @@ export async function saveStampDocumentAction(
   } catch {
     return { ok: false, error: "บันทึกไม่สำเร็จ" };
   }
+}
+
+async function createTypedDocument(opts: {
+  type: string;
+  title: string;
+  payload: Parameters<typeof stringifyPayload>[0];
+}): Promise<DocActionResult> {
+  try {
+    const ctx = await requireOrgContext();
+    const gate = canCreateDocument({
+      planKey: ctx.organization.planKey,
+      seatLimit: ctx.organization.seatLimit,
+      docLimitMonthly: ctx.organization.docLimitMonthly,
+      memberCount: ctx.memberCount,
+      docsCreatedThisMonth: ctx.docsCreatedThisMonth,
+    });
+    if (!gate.ok) return { ok: false, error: gate.reason };
+
+    const doc = await prisma.$transaction(async (tx) => {
+      const created = await tx.document.create({
+        data: {
+          organizationId: ctx.organization.id,
+          createdById: ctx.user.id!,
+          type: opts.type,
+          title: opts.title,
+          status: DocumentStatus.DRAFT,
+          payload: stringifyPayload(opts.payload),
+        },
+      });
+      await incrementDocUsage(tx, ctx.organization.id, ctx.yearMonth);
+      return created;
+    });
+
+    revalidatePath("/documents");
+    revalidatePath("/dashboard");
+    return { ok: true, documentId: doc.id };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "";
+    if (msg === "UNAUTHORIZED") return { ok: false, error: "กรุณาเข้าสู่ระบบ" };
+    return { ok: false, error: "สร้างเอกสารไม่สำเร็จ" };
+  }
+}
+
+async function saveTypedDocument<T>(opts: {
+  id: string;
+  status: "DRAFT" | "FINAL";
+  type: string;
+  payloadSchema: z.ZodType<T>;
+  payload: T;
+  title: string;
+}): Promise<DocActionResult> {
+  try {
+    const ctx = await requireOrgContext();
+    const parsed = opts.payloadSchema.safeParse(opts.payload);
+    if (!parsed.success) return { ok: false, error: "ข้อมูลเอกสารไม่ถูกต้อง" };
+
+    const existing = await prisma.document.findFirst({
+      where: { id: opts.id, organizationId: ctx.organization.id, type: opts.type },
+    });
+    if (!existing) return { ok: false, error: "ไม่พบเอกสาร" };
+
+    await prisma.document.update({
+      where: { id: existing.id },
+      data: {
+        title: opts.title,
+        status: opts.status,
+        payload: stringifyPayload(parsed.data as Parameters<typeof stringifyPayload>[0]),
+      },
+    });
+    revalidatePath(`/documents/${existing.id}`);
+    revalidatePath("/documents");
+    return { ok: true, documentId: existing.id };
+  } catch {
+    return { ok: false, error: "บันทึกไม่สำเร็จ" };
+  }
+}
+
+export async function createOrderDocumentAction(): Promise<DocActionResult> {
+  const ctxPayload = emptyOrderLetter();
+  try {
+    const ctx = await requireOrgContext();
+    const template = await prisma.orgTemplate.findUnique({
+      where: { organizationId: ctx.organization.id },
+    });
+    if (template) {
+      ctxPayload.issuer = template.agencyName || template.department;
+      ctxPayload.docNum = template.docNumPrefix;
+    }
+  } catch {
+    // createTypedDocument will re-check auth
+  }
+  return createTypedDocument({
+    type: DocumentType.ORDER,
+    title: "คำสั่ง (ฉบับร่าง)",
+    payload: ctxPayload,
+  });
+}
+
+export async function saveOrderDocumentAction(input: {
+  id: string;
+  status: "DRAFT" | "FINAL";
+  payload: z.infer<typeof orderLetterSchema>;
+}): Promise<DocActionResult> {
+  return saveTypedDocument({
+    id: input.id,
+    status: input.status,
+    type: DocumentType.ORDER,
+    payloadSchema: orderLetterSchema,
+    payload: input.payload,
+    title: orderDocumentTitle(input.payload, "คำสั่ง (ฉบับร่าง)"),
+  });
+}
+
+export async function createAnnounceDocumentAction(): Promise<DocActionResult> {
+  const payload = emptyAnnounceLetter();
+  try {
+    const ctx = await requireOrgContext();
+    const template = await prisma.orgTemplate.findUnique({
+      where: { organizationId: ctx.organization.id },
+    });
+    if (template) payload.issuer = template.agencyName || template.department;
+  } catch {
+    // auth handled below
+  }
+  return createTypedDocument({
+    type: DocumentType.ANNOUNCE,
+    title: "ประกาศ (ฉบับร่าง)",
+    payload,
+  });
+}
+
+export async function saveAnnounceDocumentAction(input: {
+  id: string;
+  status: "DRAFT" | "FINAL";
+  payload: z.infer<typeof announceLetterSchema>;
+}): Promise<DocActionResult> {
+  return saveTypedDocument({
+    id: input.id,
+    status: input.status,
+    type: DocumentType.ANNOUNCE,
+    payloadSchema: announceLetterSchema,
+    payload: input.payload,
+    title: announceDocumentTitle(input.payload, "ประกาศ (ฉบับร่าง)"),
+  });
+}
+
+export async function createCertDocumentAction(): Promise<DocActionResult> {
+  const payload = emptyCertLetter();
+  try {
+    const ctx = await requireOrgContext();
+    const template = await prisma.orgTemplate.findUnique({
+      where: { organizationId: ctx.organization.id },
+    });
+    if (template) {
+      payload.agencyName = template.agencyName || template.department;
+      payload.agencyAddress = template.agencyAddress;
+      payload.docNum = template.docNumPrefix;
+    }
+  } catch {
+    // auth handled below
+  }
+  return createTypedDocument({
+    type: DocumentType.CERT,
+    title: "หนังสือรับรอง (ฉบับร่าง)",
+    payload,
+  });
+}
+
+export async function saveCertDocumentAction(input: {
+  id: string;
+  status: "DRAFT" | "FINAL";
+  payload: z.infer<typeof certLetterSchema>;
+}): Promise<DocActionResult> {
+  return saveTypedDocument({
+    id: input.id,
+    status: input.status,
+    type: DocumentType.CERT,
+    payloadSchema: certLetterSchema,
+    payload: input.payload,
+    title: certDocumentTitle(input.payload, "หนังสือรับรอง (ฉบับร่าง)"),
+  });
+}
+
+export async function createMeetingDocumentAction(): Promise<DocActionResult> {
+  return createTypedDocument({
+    type: DocumentType.MEETING,
+    title: "รายงานการประชุม (ฉบับร่าง)",
+    payload: emptyMeetingLetter(),
+  });
+}
+
+export async function saveMeetingDocumentAction(input: {
+  id: string;
+  status: "DRAFT" | "FINAL";
+  payload: z.infer<typeof meetingLetterSchema>;
+}): Promise<DocActionResult> {
+  return saveTypedDocument({
+    id: input.id,
+    status: input.status,
+    type: DocumentType.MEETING,
+    payloadSchema: meetingLetterSchema,
+    payload: input.payload,
+    title: meetingDocumentTitle(input.payload, "รายงานการประชุม (ฉบับร่าง)"),
+  });
 }
 
 export async function duplicateDocumentAction(

@@ -8,12 +8,14 @@ export function documentTypeLabel(type: string): string {
       return "ภายใน";
     case DocumentType.STAMP:
       return "ประทับตรา";
-    case DocumentType.MEETING:
-      return "รายงานการประชุม";
     case DocumentType.ORDER:
-      return "สั่งการ";
+      return "คำสั่ง";
+    case DocumentType.ANNOUNCE:
+      return "ประกาศ";
     case DocumentType.CERT:
       return "รับรอง";
+    case DocumentType.MEETING:
+      return "รายงานการประชุม";
     default:
       return type;
   }

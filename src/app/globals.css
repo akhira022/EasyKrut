@@ -667,6 +667,92 @@ textarea.field {
 .doc-a4-preview .doc-stamp-contact {
   margin-top: 0.75cm;
 }
+
+.doc-official-garuda {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.3cm;
+}
+.doc-official-garuda img {
+  height: 3cm;
+  width: auto;
+  display: block;
+}
+.doc-a4-preview .doc-official-garuda img {
+  height: 1.45cm;
+}
+.doc-official-heading {
+  font-size: 18pt;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.doc-a4-preview .doc-official-heading {
+  font-size: 12px;
+}
+.doc-official-line {
+  margin-top: 4pt;
+}
+.justify-center { justify-content: center; }
+
+.doc-cert-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 1cm;
+  margin-top: 8pt;
+}
+.doc-cert-agency { width: 50%; }
+.doc-cert-bottom {
+  display: flex;
+  align-items: flex-start;
+  gap: 1cm;
+  margin-top: 16pt;
+}
+.doc-cert-photo {
+  width: 4cm;
+  height: 6cm;
+  border: 1px dashed #999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #888;
+  font-size: 10pt;
+  text-align: center;
+  flex-shrink: 0;
+}
+.doc-a4-preview .doc-cert-photo {
+  width: 1.8cm;
+  height: 2.7cm;
+  font-size: 7px;
+}
+
+.doc-meeting-logo {
+  width: 2cm;
+  height: 2cm;
+  margin: 0 0 8pt;
+  border: 1px dashed #bbb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 8pt;
+  text-align: center;
+  flex-shrink: 0;
+}
+.doc-a4-preview .doc-meeting-logo {
+  width: 1cm;
+  height: 1cm;
+  font-size: 6px;
+  margin-bottom: 4pt;
+}
+.doc-meeting-rule {
+  border-bottom: 0.5pt solid #000;
+  margin: 10pt 0;
+}
+.doc-meeting-agenda {
+  margin-top: 10pt;
+}
+
 .mt-\[4pt\] { margin-top: 4pt; }
 .pt-\[2cm\] { padding-top: 2cm; }
 .font-bold { font-weight: 700; }
