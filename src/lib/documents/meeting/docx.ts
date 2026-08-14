@@ -28,7 +28,6 @@ export async function buildMeetingDocx(data: MeetingLetterPayload): Promise<Buff
   const recorder = toThaiNumber(data.recorderName);
   const children: Paragraph[] = [
     new Paragraph({
-      alignment: AlignmentType.CENTER,
       spacing: { after: 80 },
       children: [run("(โลโก้หน่วยงาน)", { color: "999999", size: 20 })],
     }),

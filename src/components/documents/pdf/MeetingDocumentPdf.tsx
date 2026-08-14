@@ -17,7 +17,7 @@ const styles = StyleSheet.create({
     paddingLeft: cm(3),
   },
   logo: {
-    alignSelf: "center",
+    alignSelf: "flex-start",
     width: cm(2),
     height: cm(2),
     borderWidth: 0.75,

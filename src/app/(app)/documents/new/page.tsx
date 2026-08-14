@@ -57,42 +57,49 @@ const READY = [
     formId: "1",
     title: "หนังสือภายนอก",
     note: "กระดาษตราครุฑ สำหรับติดต่อหน่วยงานภายนอก พร้อมเลขไทยและวันที่ พ.ศ.",
+    action: "สร้างหนังสือภายนอก",
   },
   {
     form: createInternalDoc,
     formId: "2",
-    title: "หนังสือภายใน",
-    note: "บันทึกข้อความสำหรับติดต่อภายในหน่วยงาน",
+    title: "บันทึกข้อความ",
+    note: "หนังสือภายในองค์กร หัวเรื่องบันทึกข้อความ",
+    action: "สร้างบันทึกข้อความ",
   },
   {
     form: createStampDoc,
     formId: "3",
     title: "หนังสือประทับตรา",
     note: "กระดาษตราครุฑ · ประทับตราแทนการลงชื่อ สำหรับเรื่องที่ไม่ใช่ราชการสำคัญ",
+    action: "สร้างหนังสือประทับตรา",
   },
   {
     form: createOrderDoc,
     formId: "4",
     title: "คำสั่ง",
     note: "หนังสือสั่งการ · ผู้บังคับบัญชาสั่งให้ปฏิบัติ",
+    action: "สร้างคำสั่ง",
   },
   {
     form: createAnnounceDoc,
     formId: "7",
     title: "ประกาศ",
     note: "หนังสือประชาสัมพันธ์ · ชี้แจงหรือแนะแนวทางปฏิบัติ (รองรับแจ้งความ)",
+    action: "สร้างประกาศ",
   },
   {
     form: createCertDoc,
     formId: "10",
     title: "หนังสือรับรอง",
     note: "หลักฐานในราชการ · รับรองบุคคล นิติบุคคล หรือหน่วยงาน",
+    action: "สร้างหนังสือรับรอง",
   },
   {
     form: createMeetingDoc,
     formId: "11",
     title: "รายงานการประชุม",
     note: "บันทึกผู้มาประชุม ความเห็น และมติ · ไม่ใช้ตราครุฑ",
+    action: "สร้างรายงานการประชุม",
   },
 ] as const;
 
@@ -118,7 +125,7 @@ export default async function NewDocumentPage({
   });
 
   return (
-    <div className="space-y-8 max-w-3xl">
+    <div className="space-y-8 max-w-4xl">
       <div>
         <p className="text-sm text-[var(--text-muted)] mb-2">
           <Link href="/documents" className="text-[var(--primary-color)] hover:underline">
@@ -127,9 +134,9 @@ export default async function NewDocumentPage({
           <span className="mx-2">/</span>
           สร้างใหม่
         </p>
-        <h1 className="text-2xl font-medium">เลือกประเภทหนังสือ</h1>
+        <h1 className="text-2xl font-medium">เลือกประเภทเอกสาร</h1>
         <p className="text-sm text-[var(--text-muted)] mt-1">
-          เลือกชนิดเอกสาร แล้วเข้าฟอร์มพร้อมพรีวิว A4 ทันที · แผน {plan.name} ใช้ไปแล้ว{" "}
+          แต่ละแบบมีเลย์เอาต์และช่องกรอกต่างกัน · แผน {plan.name} ใช้ไปแล้ว{" "}
           {ctx.docsCreatedThisMonth}/{ctx.organization.docLimitMonthly} ฉบับเดือนนี้
         </p>
       </div>
@@ -147,34 +154,25 @@ export default async function NewDocumentPage({
         </div>
       ) : null}
 
-      <ol className="grid gap-2 text-sm text-[var(--text-muted)] sm:grid-cols-3">
-        <li className="rounded-lg border border-[var(--border-color)] bg-white px-3 py-2">
-          <span className="text-[var(--primary-color)] font-medium">1.</span> เลือกประเภท
-        </li>
-        <li className="rounded-lg border border-[var(--border-color)] bg-white px-3 py-2">
-          <span className="text-[var(--primary-color)] font-medium">2.</span> กรอก + พรีวิวสด
-        </li>
-        <li className="rounded-lg border border-[var(--border-color)] bg-white px-3 py-2">
-          <span className="text-[var(--primary-color)] font-medium">3.</span> บันทึก / ส่งออก
-        </li>
-      </ol>
-
       <section className="space-y-3">
         <h2 className="font-medium">พร้อมใช้งาน</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {READY.map((item) => (
-            <form action={item.form} key={item.formId}>
-              <button
-                type="submit"
-                disabled={!gate.ok}
-                className="w-full h-full text-left rounded-xl border border-[var(--border-color)] bg-white p-5 hover:border-[var(--primary-color)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+            <form action={item.form} key={item.formId} className="h-full">
+              <div className="flex h-full flex-col rounded-xl border border-[var(--border-color)] bg-white p-5">
                 <div className="text-xs uppercase tracking-wide text-[var(--primary-color)] mb-2">
                   แบบที่ {item.formId}
                 </div>
                 <div className="font-medium text-lg">{item.title}</div>
-                <p className="text-sm text-[var(--text-muted)] mt-2">{item.note}</p>
-              </button>
+                <p className="text-sm text-[var(--text-muted)] mt-2 flex-1">{item.note}</p>
+                <button
+                  type="submit"
+                  disabled={!gate.ok}
+                  className="btn-primary mt-4 w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {item.action}
+                </button>
+              </div>
             </form>
           ))}
         </div>
@@ -182,15 +180,20 @@ export default async function NewDocumentPage({
 
       <section className="space-y-3">
         <h2 className="font-medium">เร็วๆ นี้</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           {COMING_SOON.map((item) => (
             <div
               key={item.title}
-              className="rounded-xl border border-dashed border-[var(--border-color)] bg-[#faf9ff] p-5 opacity-80"
+              className="relative flex flex-col rounded-xl border border-dashed border-[var(--border-color)] bg-[#faf9ff] p-5 opacity-90"
             >
+              <span className="absolute top-3 right-3 rounded-full bg-[#eeeaff] px-2 py-0.5 text-xs text-[var(--primary-color)]">
+                เร็วๆ นี้
+              </span>
               <div className="text-xs text-[var(--text-muted)] mb-2">{item.note}</div>
               <div className="font-medium">{item.title}</div>
-              <p className="text-sm text-[var(--text-muted)] mt-2">ยังไม่เปิดใช้งาน</p>
+              <button type="button" disabled className="btn-secondary mt-4 w-full opacity-60 cursor-not-allowed">
+                ยังไม่เปิดให้สร้าง
+              </button>
             </div>
           ))}
         </div>

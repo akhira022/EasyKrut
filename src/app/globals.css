@@ -729,7 +729,7 @@ textarea.field {
 .doc-meeting-logo {
   width: 2cm;
   height: 2cm;
-  margin: 0 auto 8pt;
+  margin: 0 0 8pt;
   border: 1px dashed #bbb;
   display: flex;
   align-items: center;
@@ -737,6 +737,7 @@ textarea.field {
   color: #999;
   font-size: 8pt;
   text-align: center;
+  flex-shrink: 0;
 }
 .doc-a4-preview .doc-meeting-logo {
   width: 1cm;
