@@ -86,24 +86,25 @@ export function InternalLetterPreview({ data, className = "", printMode }: Props
       </div>
 
       <div className="doc-memo-meta">
-        {/* Header fields always render so the form skeleton stays visible while editing. */}
-        <div className="doc-meta mt-[4pt]">
+        {/* Header fields always render so the form skeleton stays visible while editing.
+            Ruled underlines match แบบบันทึกข้อความ (กระดาษแบบที่ 2). */}
+        <div className="doc-meta doc-memo-ruled">
           <strong className="doc-meta-label font-bold">ส่วนราชการ</strong>
           <span className="doc-meta-value">{agencyName}</span>
         </div>
 
-        <div className="doc-memo-meta-row">
-          <span>
+        <div className="doc-memo-meta-row doc-memo-ruled">
+          <span className="doc-memo-ruled-half">
             <strong>ที่</strong>
             &nbsp;&nbsp;{docnum}
           </span>
-          <span>
+          <span className="doc-memo-ruled-half">
             <strong>วันที่</strong>
             &nbsp;&nbsp;{date}
           </span>
         </div>
 
-        <div className="doc-meta mt-[4pt]">
+        <div className="doc-meta doc-memo-ruled doc-memo-ruled-last">
           <strong className="doc-meta-label font-bold">เรื่อง</strong>
           <span className="doc-meta-value">{subject}</span>
         </div>

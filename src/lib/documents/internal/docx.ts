@@ -1,5 +1,6 @@
 import {
   AlignmentType,
+  BorderStyle,
   Document,
   ImageRun,
   LineRuleType,
@@ -16,6 +17,10 @@ import { getThaiDate, toThaiNumber } from "@/lib/thai";
 const FONT = "TH SarabunPSK";
 const SIZE = 32;
 
+const RULE_BORDER = {
+  bottom: { style: BorderStyle.SINGLE, size: 6, color: "000000", space: 1 },
+};
+
 function run(text: string, opts?: { bold?: boolean; color?: string; size?: number }) {
   return new TextRun({
     text,
@@ -26,9 +31,10 @@ function run(text: string, opts?: { bold?: boolean; color?: string; size?: numbe
   });
 }
 
-function richLabel(label: string, value: string) {
+function richLabel(label: string, value: string, opts?: { ruled?: boolean }) {
   return new Paragraph({
-    spacing: { after: 100 },
+    spacing: { after: opts?.ruled ? 40 : 100 },
+    border: opts?.ruled ? RULE_BORDER : undefined,
     children: [run(label, { bold: true }), run(`  ${value}`)],
   });
 }
@@ -84,10 +90,11 @@ export async function buildInternalDocx(data: InternalLetterPayload): Promise<Bu
     }),
   );
 
-  children.push(richLabel("ส่วนราชการ", agencyName));
+  children.push(richLabel("ส่วนราชการ", agencyName, { ruled: true }));
   children.push(
     new Paragraph({
-      spacing: { after: 100 },
+      spacing: { after: 40 },
+      border: RULE_BORDER,
       children: [
         run("ที่", { bold: true }),
         run(`  ${docnum}          `),
@@ -96,8 +103,13 @@ export async function buildInternalDocx(data: InternalLetterPayload): Promise<Bu
       ],
     }),
   );
-  children.push(richLabel("เรื่อง", subject));
-  children.push(richLabel(data.salutation, receiver.split(/\r?\n/)[0] || ""));
+  children.push(richLabel("เรื่อง", subject, { ruled: true }));
+  children.push(
+    new Paragraph({
+      spacing: { after: 100 },
+      children: [run(data.salutation), run(`  ${receiver.split(/\r?\n/)[0] || ""}`)],
+    }),
+  );
   receiver
     .split(/\r?\n/)
     .slice(1)

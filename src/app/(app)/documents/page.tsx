@@ -205,7 +205,7 @@ export default async function DocumentsPage({
       </div>
 
       <div className="rounded-xl border border-dashed border-[var(--border-color)] p-4 text-sm text-[var(--text-muted)] flex flex-wrap items-center justify-between gap-2">
-        <span>ประเภทอื่น (สั่งการ, ประชาสัมพันธ์, รับรอง, ประชุม) — เร็วๆ นี้</span>
+        <span>ประเภทอื่น (สั่งการ, ประชาสัมพันธ์, รับรอง, รายงานการประชุม) — เร็วๆ นี้</span>
         <Link href="/documents/new" className="text-[var(--primary-color)] hover:underline">
           ดูประเภทที่สร้างได้
         </Link>

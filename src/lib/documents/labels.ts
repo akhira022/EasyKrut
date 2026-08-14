@@ -9,7 +9,7 @@ export function documentTypeLabel(type: string): string {
     case DocumentType.STAMP:
       return "ประทับตรา";
     case DocumentType.MEETING:
-      return "ประชุม";
+      return "รายงานการประชุม";
     case DocumentType.ORDER:
       return "สั่งการ";
     case DocumentType.CERT:
