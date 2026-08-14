@@ -48,6 +48,26 @@ const styles = StyleSheet.create({
     marginTop: 4,
     flexWrap: "wrap",
   },
+  /** Ruled header rows (ส่วนราชการ / ที่·วันที่ / เรื่อง) */
+  metaRuled: {
+    flexDirection: "row",
+    marginTop: 4,
+    flexWrap: "wrap",
+    borderBottomWidth: 0.75,
+    borderBottomColor: "#000",
+    paddingBottom: 2,
+    minHeight: 18,
+  },
+  metaRuledLast: {
+    flexDirection: "row",
+    marginTop: 4,
+    flexWrap: "wrap",
+    borderBottomWidth: 0.75,
+    borderBottomColor: "#000",
+    paddingBottom: 2,
+    minHeight: 18,
+    marginBottom: 6,
+  },
   metaLabel: {
     fontWeight: 700,
     marginRight: 8,
@@ -63,6 +83,10 @@ const styles = StyleSheet.create({
   docDateRow: {
     flexDirection: "row",
     marginTop: 4,
+    borderBottomWidth: 0.75,
+    borderBottomColor: "#000",
+    paddingBottom: 2,
+    minHeight: 18,
   },
   docDateCol: {
     width: "50%",
@@ -196,8 +220,9 @@ export function InternalDocumentPdf({ data, garudaSrc = "/krut.png" }: Props) {
         </View>
 
         <View style={styles.memoMeta}>
-          {/* Header fields always render (even when empty) so the form skeleton stays visible. */}
-          <View style={styles.meta}>
+          {/* Header fields always render (even when empty) so the form skeleton stays visible.
+              Ruled underlines match แบบบันทึกข้อความ (กระดาษแบบที่ 2). */}
+          <View style={styles.metaRuled}>
             <Text style={styles.metaLabel}>ส่วนราชการ</Text>
             <Text style={styles.metaValue}>{agencyName}</Text>
           </View>
@@ -213,7 +238,7 @@ export function InternalDocumentPdf({ data, garudaSrc = "/krut.png" }: Props) {
             </View>
           </View>
 
-          <View style={styles.meta}>
+          <View style={styles.metaRuledLast}>
             <Text style={styles.metaLabel}>เรื่อง</Text>
             <Text style={styles.metaValue}>{subject}</Text>
           </View>

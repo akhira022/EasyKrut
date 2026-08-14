@@ -38,7 +38,8 @@ async function createStampDoc() {
 const COMING_SOON = [
   { title: "หนังสือสั่งการ", note: "คำสั่ง / ระเบียบ / ข้อบังคับ" },
   { title: "หนังสือประชาสัมพันธ์", note: "ประกาศ / แถลงการณ์ / ข่าว" },
-  { title: "หลักฐานในราชการ", note: "รับรอง / รายงานประชุม" },
+  { title: "หนังสือรับรอง", note: "หลักฐานในราชการ · แบบที่ 10" },
+  { title: "รายงานการประชุม", note: "หลักฐานในราชการ · แบบที่ 11" },
 ] as const;
 
 export default async function NewDocumentPage({

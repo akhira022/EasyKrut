@@ -4,7 +4,7 @@
 
 **สถานะปัจจุบัน:** MVP พร้อมใช้ — ภายนอก + ภายใน (บันทึกข้อความ) + ประทับตรา  
 **ชิ้นถัดไป:** หนังสือสั่งการ (คำสั่ง)  
-**เอกสาร:** [`docs/OVERVIEW.md`](docs/OVERVIEW.md) (v1.4) · [`docs/PLAN.md`](docs/PLAN.md) · [`docs/USERFLOW.md`](docs/USERFLOW.md)
+**เอกสาร:** [`docs/OVERVIEW.md`](docs/OVERVIEW.md) (v1.5) · [`docs/PLAN.md`](docs/PLAN.md) · [`docs/USERFLOW.md`](docs/USERFLOW.md)
 
 ## ความต้องการ
 
