@@ -242,6 +242,21 @@ textarea.field {
   font-size: 13px;
   margin-bottom: 5px;
 }
+label.editor-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  margin-bottom: 0;
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+label.editor-checkbox-label input {
+  width: auto;
+  margin: 0;
+}
 
 .add-paragraph-btn {
   background: var(--primary-color);
@@ -348,9 +363,9 @@ textarea.field {
   visibility: hidden;
   pointer-events: none;
 }
-.doc-a4-preview .doc-urgency { font-size: 11px; }
+.doc-a4-preview .doc-urgency { font-size: 19px; }
 .doc-a4-preview .doc-urgency-spacer { min-height: 1.2em; }
-.doc-a4-print .doc-urgency { font-size: 18pt; }
+.doc-a4-print .doc-urgency { font-size: 32pt; }
 .doc-a4-print .doc-urgency-spacer { min-height: 1.35em; }
 
 /* ครุฑกึ่งกลางสูง 3 ซม. · ที่/ส่วนราชการ baseline เดียวกัน */
@@ -540,10 +555,14 @@ textarea.field {
   padding: 6.7% 9.5% 6.7% 14.3% !important;
 }
 .doc-memo-header {
-  display: flex;
-  align-items: center;
-  gap: 0.4cm;
+  position: relative;
   margin-bottom: 0.5cm;
+  min-height: 1.5cm;
+}
+.doc-memo-garuda {
+  position: absolute;
+  left: 0;
+  top: 0;
 }
 .doc-memo-garuda img {
   height: 1.5cm;
@@ -551,7 +570,10 @@ textarea.field {
   display: block;
 }
 .doc-a4-preview .doc-memo-garuda img { height: 0.85cm; }
+.doc-a4-preview .doc-memo-header { min-height: 0.85cm; }
 .doc-memo-title {
+  width: 100%;
+  text-align: center;
   font-size: 24pt;
   font-weight: 700;
   line-height: 1.2;
@@ -570,29 +592,48 @@ textarea.field {
 }
 .doc-memo-meta-row > span,
 .doc-memo-ruled-half {
+  display: flex;
+  align-items: baseline;
   flex: 1 1 50%;
   min-width: 0;
   box-sizing: border-box;
 }
-/* เส้นคั่นใต้ส่วนราชการ / ที่·วันที่ / เรื่อง — ตามแบบกระดาษบันทึกข้อความ */
+/* ป้ายหัวเรื่องบันทึกข้อความ 20pt ตัวหนา · ค่าที่กรอก 16pt ตามระเบียบสารบรรณ */
+.doc-memo-meta .doc-memo-label {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  font-size: 1.25em;
+  font-weight: 700;
+  margin-right: 0.5em;
+}
+/* เส้นคั่นใต้ส่วนราชการ / ที่·วันที่ — เปิดปิดได้จาก editor */
 .doc-memo-ruled {
   border-bottom: 0.5pt solid #000;
+}
+/* เส้นคั่นระหว่างส่วนหัวกับเนื้อหา — หนากว่าและปิดไม่ได้ */
+.doc-memo-separator {
+  border-bottom: 1.5pt solid #000;
+  margin-bottom: 6pt;
+}
+.doc-memo-meta > div {
+  align-items: baseline;
   padding-bottom: 2pt;
   margin-top: 4pt;
   min-height: 1.35em;
 }
-.doc-memo-ruled-last {
-  margin-bottom: 6pt;
-}
-.doc-a4-preview .doc-memo-ruled {
-  border-bottom-width: 1px;
+.doc-a4-preview .doc-memo-meta > div {
   padding-bottom: 1px;
   margin-top: 2px;
 }
-.doc-memo-meta-row.doc-memo-ruled {
-  /* one continuous rule under ที่ + วันที่ */
-  align-items: flex-end;
+.doc-a4-preview .doc-memo-ruled { border-bottom-width: 1px; }
+.doc-a4-preview .doc-memo-separator { border-bottom-width: 2px; }
+/* จุดไข่ปลาเมื่อยังไม่กรอกค่า — ตามแบบฟอร์มบันทึกข้อความ */
+.doc-memo-dots {
+  flex: 1 1 auto;
+  min-width: 0;
+  border-bottom: 1.5pt dotted #000;
 }
+.doc-a4-preview .doc-memo-dots { border-bottom-width: 1px; }
 
 /* หนังสือประทับตรา — ครุฑกลาง · ตราด้านขวา · ติดต่อท้ายซ้าย */
 .doc-stamp-header {

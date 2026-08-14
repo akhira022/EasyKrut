@@ -134,7 +134,10 @@ export async function createInternalDocumentAction(): Promise<DocActionResult> {
 
     const payload = emptyInternalLetter();
     if (template) {
-      payload.agencyName = template.agencyName || template.department;
+      const agency = template.agencyName || template.department;
+      payload.agencyName = template.tel?.trim()
+        ? `${agency}\nโทร. ${template.tel.trim()}`
+        : agency;
       payload.docNum = template.docNumPrefix;
     }
 

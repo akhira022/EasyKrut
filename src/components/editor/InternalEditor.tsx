@@ -251,6 +251,14 @@ export function InternalEditor({ documentId, initialStatus, initialPayload }: Pr
               value={payload.agencyName}
               onChange={(e) => update("agencyName", e.target.value)}
             />
+            <label className="editor-checkbox-label">
+              <input
+                type="checkbox"
+                checked={payload.showAgencyRule}
+                onChange={(e) => update("showAgencyRule", e.target.checked)}
+              />
+              แสดงเส้นใต้ส่วนราชการ
+            </label>
           </div>
 
           <div className="form-row">
@@ -272,6 +280,14 @@ export function InternalEditor({ documentId, initialStatus, initialPayload }: Pr
               />
             </div>
           </div>
+          <label className="editor-checkbox-label">
+            <input
+              type="checkbox"
+              checked={payload.showDocDateRule}
+              onChange={(e) => update("showDocDateRule", e.target.checked)}
+            />
+            แสดงเส้นใต้ที่ / วันที่
+          </label>
 
           <div className="form-group">
             <label>เรื่อง</label>

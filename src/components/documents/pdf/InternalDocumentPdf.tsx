@@ -21,22 +21,25 @@ const styles = StyleSheet.create({
   urgency: {
     color: "#c00",
     fontWeight: 700,
-    fontSize: 18,
+    fontSize: 32,
     marginBottom: 4,
   },
   memoHeader: {
-    flexDirection: "row",
-    alignItems: "center",
+    position: "relative",
     marginBottom: cm(0.5),
+    minHeight: cm(1.5),
   },
   garuda: {
-    // ~1.5cm tall (smaller than the 3cm external-letter emblem)
+    position: "absolute",
+    left: 0,
+    top: 0,
     width: cm(1.5),
     height: cm(1.5),
     objectFit: "contain",
-    marginRight: cm(0.4),
   },
   memoTitle: {
+    width: "100%",
+    textAlign: "center",
     fontSize: 24,
     fontWeight: 700,
   },
@@ -48,25 +51,40 @@ const styles = StyleSheet.create({
     marginTop: 4,
     flexWrap: "wrap",
   },
-  /** Ruled header rows (ส่วนราชการ / ที่·วันที่ / เรื่อง) */
-  metaRuled: {
+  /** Header rows (ส่วนราชการ / ที่·วันที่ / เรื่อง) — rule toggled per field */
+  memoRow: {
     flexDirection: "row",
+    alignItems: "flex-end",
     marginTop: 4,
-    flexWrap: "wrap",
-    borderBottomWidth: 0.75,
-    borderBottomColor: "#000",
     paddingBottom: 2,
-    minHeight: 18,
+    minHeight: 20,
   },
-  metaRuledLast: {
-    flexDirection: "row",
-    marginTop: 4,
-    flexWrap: "wrap",
+  memoRowRuled: {
     borderBottomWidth: 0.75,
     borderBottomColor: "#000",
-    paddingBottom: 2,
-    minHeight: 18,
+  },
+  /** เส้นคั่นระหว่างส่วนหัวกับเนื้อหา — หนากว่าและปิดไม่ได้ */
+  memoSeparator: {
+    borderBottomWidth: 1.5,
+    borderBottomColor: "#000",
     marginBottom: 6,
+  },
+  /** ป้าย 20pt ตัวหนา · ค่าที่กรอก 16pt */
+  memoLabel: {
+    fontSize: 20,
+    fontWeight: 700,
+    marginRight: 8,
+  },
+  memoValue: {
+    flex: 1,
+  },
+  /** จุดไข่ปลาเมื่อยังไม่กรอกค่า */
+  memoDots: {
+    flex: 1,
+    borderBottomWidth: 1.5,
+    borderBottomStyle: "dotted",
+    borderBottomColor: "#000",
+    marginBottom: 3,
   },
   metaLabel: {
     fontWeight: 700,
@@ -80,18 +98,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   /** "ที่" left half · "วันที่" right half (starts at page center) */
-  docDateRow: {
-    flexDirection: "row",
-    marginTop: 4,
-    borderBottomWidth: 0.75,
-    borderBottomColor: "#000",
-    paddingBottom: 2,
-    minHeight: 18,
-  },
   docDateCol: {
     width: "50%",
     flexDirection: "row",
-    flexWrap: "wrap",
+    alignItems: "flex-end",
   },
   metaList: {
     marginTop: 4,
@@ -112,9 +122,6 @@ const styles = StyleSheet.create({
     marginLeft: "50%",
     width: "50%",
     marginTop: 12,
-  },
-  closing: {
-    textAlign: "center",
   },
   signSpace: {
     height: cm(2.5),
@@ -178,6 +185,12 @@ function MetaList({ label, items }: { label: string; items: string[] }) {
   );
 }
 
+/** ค่าที่ยังไม่กรอกแสดงเป็นจุดไข่ปลาเต็มช่อง ตามแบบฟอร์มบันทึกข้อความ */
+function MemoValue({ value }: { value: string }) {
+  if (!value.trim()) return <View style={styles.memoDots} />;
+  return <Text style={styles.memoValue}>{value}</Text>;
+}
+
 type Props = {
   data: InternalLetterPayload;
   /**
@@ -201,12 +214,15 @@ export function InternalDocumentPdf({ data, garudaSrc = "/krut.png" }: Props) {
   const attachments = numberedItems(data.attachments || []);
   const signName = toThaiNumber(data.signName);
   const position = toThaiNumber(data.position);
-  const closing = insertThaiWordBreaks(data.closing);
   const paragraphs = (data.paragraphs || [])
     .map((p) => toThaiNumber(p).replace(/\s+/g, " ").trim())
     .filter((p) => p !== "")
     .map(insertThaiWordBreaks);
+  const closingText = toThaiNumber(data.closing).replace(/\s+/g, " ").trim();
+  const closing = closingText ? insertThaiWordBreaks(closingText) : "";
   const positionLines = linesOf(position);
+  const showAgencyRule = data.showAgencyRule ?? true;
+  const showDocDateRule = data.showDocDateRule ?? true;
 
   return (
     <Document title="บันทึกข้อความ" author="EasyKrut">
@@ -222,25 +238,25 @@ export function InternalDocumentPdf({ data, garudaSrc = "/krut.png" }: Props) {
         <View style={styles.memoMeta}>
           {/* Header fields always render (even when empty) so the form skeleton stays visible.
               Ruled underlines match แบบบันทึกข้อความ (กระดาษแบบที่ 2). */}
-          <View style={styles.metaRuled}>
-            <Text style={styles.metaLabel}>ส่วนราชการ</Text>
-            <Text style={styles.metaValue}>{agencyName}</Text>
+          <View style={[styles.memoRow, showAgencyRule ? styles.memoRowRuled : {}]}>
+            <Text style={styles.memoLabel}>ส่วนราชการ</Text>
+            <MemoValue value={agencyName} />
           </View>
 
-          <View style={styles.docDateRow}>
+          <View style={[styles.memoRow, showDocDateRule ? styles.memoRowRuled : {}]}>
             <View style={styles.docDateCol}>
-              <Text style={styles.metaLabel}>ที่</Text>
-              <Text>{docnum}</Text>
+              <Text style={styles.memoLabel}>ที่</Text>
+              <MemoValue value={docnum} />
             </View>
             <View style={styles.docDateCol}>
-              <Text style={styles.metaLabel}>วันที่</Text>
-              <Text>{date}</Text>
+              <Text style={styles.memoLabel}>วันที่</Text>
+              <MemoValue value={date} />
             </View>
           </View>
 
-          <View style={styles.metaRuledLast}>
-            <Text style={styles.metaLabel}>เรื่อง</Text>
-            <Text style={styles.metaValue}>{subject}</Text>
+          <View style={[styles.memoRow, styles.memoSeparator]}>
+            <Text style={styles.memoLabel}>เรื่อง</Text>
+            <MemoValue value={subject} />
           </View>
         </View>
 
@@ -255,10 +271,12 @@ export function InternalDocumentPdf({ data, garudaSrc = "/krut.png" }: Props) {
               {p}
             </Text>
           ))}
+          {closing ? (
+            <Text style={styles.paragraph}>{closing}</Text>
+          ) : null}
         </View>
 
         <View style={styles.signatureBlock} wrap={false}>
-          <Text style={styles.closing}>{closing}</Text>
           <View style={styles.signSpace} />
           {signName ? <Text style={styles.signName}>({signName})</Text> : null}
           {positionLines.map((line, i) => (

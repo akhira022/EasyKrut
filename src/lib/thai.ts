@@ -56,6 +56,14 @@ const THAI_MONTHS = [
 /** Convert ISO date (yyyy-mm-dd) to Thai Buddhist date with Thai digits */
 export function getThaiDate(dateString: string | null | undefined): string {
   if (!dateString) return "";
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateString.trim());
+  if (iso) {
+    const year = Number(iso[1]);
+    const month = Number(iso[2]) - 1;
+    const day = Number(iso[3]);
+    if (month < 0 || month > 11 || day < 1 || day > 31) return "";
+    return `${toThaiNumber(day)} ${THAI_MONTHS[month]} ${toThaiNumber(year + 543)}`;
+  }
   const d = new Date(dateString);
   if (Number.isNaN(d.getTime())) return "";
   const day = toThaiNumber(d.getDate());

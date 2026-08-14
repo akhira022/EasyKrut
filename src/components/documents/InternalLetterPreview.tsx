@@ -56,6 +56,12 @@ function MetaList({
   );
 }
 
+/** ค่าที่ยังไม่กรอกแสดงเป็นจุดไข่ปลาเต็มช่อง ตามแบบฟอร์มบันทึกข้อความ */
+function MemoValue({ value }: { value: string }) {
+  if (!value.trim()) return <span className="doc-memo-dots" aria-hidden="true" />;
+  return <span className="doc-meta-value">{value}</span>;
+}
+
 export function InternalLetterPreview({ data, className = "", printMode }: Props) {
   const agencyName = toThaiNumber(data.agencyName);
   const docnum = toThaiNumber(data.docNum);
@@ -70,6 +76,8 @@ export function InternalLetterPreview({ data, className = "", printMode }: Props
   const paragraphs = (data.paragraphs || [])
     .map((p) => toThaiNumber(p).replace(/\s+/g, " ").trim())
     .filter((p) => p !== "");
+  const showAgencyRule = data.showAgencyRule ?? true;
+  const showDocDateRule = data.showDocDateRule ?? true;
 
   return (
     <article
@@ -88,25 +96,25 @@ export function InternalLetterPreview({ data, className = "", printMode }: Props
       <div className="doc-memo-meta">
         {/* Header fields always render so the form skeleton stays visible while editing.
             Ruled underlines match แบบบันทึกข้อความ (กระดาษแบบที่ 2). */}
-        <div className="doc-meta doc-memo-ruled">
-          <strong className="doc-meta-label font-bold">ส่วนราชการ</strong>
-          <span className="doc-meta-value">{agencyName}</span>
+        <div className={`doc-meta ${showAgencyRule ? "doc-memo-ruled" : ""}`.trim()}>
+          <strong className="doc-memo-label">ส่วนราชการ</strong>
+          <MemoValue value={agencyName} />
         </div>
 
-        <div className="doc-memo-meta-row doc-memo-ruled">
+        <div className={`doc-memo-meta-row ${showDocDateRule ? "doc-memo-ruled" : ""}`.trim()}>
           <span className="doc-memo-ruled-half">
-            <strong>ที่</strong>
-            &nbsp;&nbsp;{docnum}
+            <strong className="doc-memo-label">ที่</strong>
+            <MemoValue value={docnum} />
           </span>
           <span className="doc-memo-ruled-half">
-            <strong>วันที่</strong>
-            &nbsp;&nbsp;{date}
+            <strong className="doc-memo-label">วันที่</strong>
+            <MemoValue value={date} />
           </span>
         </div>
 
-        <div className="doc-meta doc-memo-ruled doc-memo-ruled-last">
-          <strong className="doc-meta-label font-bold">เรื่อง</strong>
-          <span className="doc-meta-value">{subject}</span>
+        <div className="doc-meta doc-memo-separator">
+          <strong className="doc-memo-label">เรื่อง</strong>
+          <MemoValue value={subject} />
         </div>
       </div>
 
@@ -129,11 +137,15 @@ export function InternalLetterPreview({ data, className = "", printMode }: Props
             <p className="doc-paragraph indent-[2.5cm]">{p}</p>
           </div>
         ))}
+        {data.closing.trim() ? (
+          <div className="doc-para-block">
+            <p className="doc-paragraph indent-[2.5cm]">{toThaiNumber(data.closing)}</p>
+          </div>
+        ) : null}
       </div>
 
       <div className="doc-closing-block">
         <div className="doc-signature ml-[50%] w-1/2 text-center mt-[12pt]">
-          <div className="doc-closing text-center">{data.closing}</div>
           <div className="doc-sign-space" aria-hidden="true" />
           {signName || position ? (
             <div className="doc-sign-identity">
