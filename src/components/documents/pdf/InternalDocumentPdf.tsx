@@ -6,6 +6,9 @@ import { PDF_FONT_FAMILY } from "./fontFamily";
 /** cm → pt (1 in = 2.54 cm = 72 pt) */
 const cm = (n: number) => (n / 2.54) * 72;
 
+/** ความกว้างที่ป้าย「วันที่」 20pt ตัวหนากินจริง — ใช้กำหนดจุดเริ่มเส้นประ */
+const DATE_LABEL_WIDTH = 25;
+
 const styles = StyleSheet.create({
   page: {
     fontFamily: PDF_FONT_FAMILY,
@@ -24,8 +27,11 @@ const styles = StyleSheet.create({
     fontSize: 32,
     marginBottom: 4,
   },
+  /** หัวข้อจัดกลางหน้า และดันลงมาอยู่แนวล่างของครุฑ (ระดับเท้าครุฑ) */
   memoHeader: {
     position: "relative",
+    flexDirection: "row",
+    alignItems: "flex-end",
     marginBottom: cm(0.5),
     minHeight: cm(1.5),
   },
@@ -51,7 +57,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
     flexWrap: "wrap",
   },
-  /** Header rows (ส่วนราชการ / ที่·วันที่ / เรื่อง) — rule toggled per field */
+  /** Header rows (ส่วนราชการ / ที่·วันที่ / เรื่อง) */
   memoRow: {
     flexDirection: "row",
     alignItems: "flex-end",
@@ -59,9 +65,15 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
     minHeight: 20,
   },
-  memoRowRuled: {
-    borderBottomWidth: 0.75,
-    borderBottomColor: "#000",
+  /**
+   * Label (20pt) and value (16pt) must sit on one baseline. Flexbox in
+   * @react-pdf/renderer has no `baseline` alignment — bottom-aligning two
+   * boxes of different font size leaves the smaller text floating above the
+   * label — so each row is a single line box with the label and value as
+   * nested inline runs, which do share a baseline.
+   */
+  memoLine: {
+    flex: 1,
   },
   /** เส้นคั่นระหว่างส่วนหัวกับเนื้อหา — หนากว่าและปิดไม่ได้ */
   memoSeparator: {
@@ -73,18 +85,22 @@ const styles = StyleSheet.create({
   memoLabel: {
     fontSize: 20,
     fontWeight: 700,
-    marginRight: 8,
   },
-  memoValue: {
-    flex: 1,
-  },
-  /** จุดไข่ปลาเมื่อยังไม่กรอกค่า */
-  memoDots: {
-    flex: 1,
+  /**
+   * เส้นประวันที่ลากใต้ตัวเลขไปจนสุดขอบขวา
+   *
+   * วางแบบ absolute เพื่อไม่ให้เข้าไปยุ่งกับการจัดบรรทัด — ถ้าเอาข้อความวันที่
+   * ไปใส่กล่องที่มีเส้นใต้ กล่องนั้นจะกลายเป็น flex item แยก แล้วตัวเลข 16pt
+   * จะลอยสูงกว่า baseline ของป้าย 20pt อยู่ ~4.9pt
+   */
+  memoDateRule: {
+    position: "absolute",
+    left: DATE_LABEL_WIDTH + 2,
+    right: 0,
+    bottom: -1,
     borderBottomWidth: 1.5,
     borderBottomStyle: "dotted",
     borderBottomColor: "#000",
-    marginBottom: 3,
   },
   metaLabel: {
     fontWeight: 700,
@@ -99,6 +115,7 @@ const styles = StyleSheet.create({
   },
   /** "ที่" left half · "วันที่" right half (starts at page center) */
   docDateCol: {
+    position: "relative",
     width: "50%",
     flexDirection: "row",
     alignItems: "flex-end",
@@ -185,10 +202,14 @@ function MetaList({ label, items }: { label: string; items: string[] }) {
   );
 }
 
-/** ค่าที่ยังไม่กรอกแสดงเป็นจุดไข่ปลาเต็มช่อง ตามแบบฟอร์มบันทึกข้อความ */
-function MemoValue({ value }: { value: string }) {
-  if (!value.trim()) return <View style={styles.memoDots} />;
-  return <Text style={styles.memoValue}>{value}</Text>;
+/** One header row: bold label and value as inline runs sharing a baseline. */
+function MemoLine({ label, value }: { label: string; value: string }) {
+  return (
+    <Text style={styles.memoLine}>
+      <Text style={styles.memoLabel}>{label}</Text>
+      {value ? <Text>{`  ${value}`}</Text> : null}
+    </Text>
+  );
 }
 
 type Props = {
@@ -221,8 +242,6 @@ export function InternalDocumentPdf({ data, garudaSrc = "/krut.png" }: Props) {
   const closingText = toThaiNumber(data.closing).replace(/\s+/g, " ").trim();
   const closing = closingText ? insertThaiWordBreaks(closingText) : "";
   const positionLines = linesOf(position);
-  const showAgencyRule = data.showAgencyRule ?? true;
-  const showDocDateRule = data.showDocDateRule ?? true;
 
   return (
     <Document title="บันทึกข้อความ" author="EasyKrut">
@@ -236,27 +255,23 @@ export function InternalDocumentPdf({ data, garudaSrc = "/krut.png" }: Props) {
         </View>
 
         <View style={styles.memoMeta}>
-          {/* Header fields always render (even when empty) so the form skeleton stays visible.
-              Ruled underlines match แบบบันทึกข้อความ (กระดาษแบบที่ 2). */}
-          <View style={[styles.memoRow, showAgencyRule ? styles.memoRowRuled : {}]}>
-            <Text style={styles.memoLabel}>ส่วนราชการ</Text>
-            <MemoValue value={agencyName} />
+          <View style={styles.memoRow}>
+            <MemoLine label="ส่วนราชการ" value={agencyName} />
           </View>
 
-          <View style={[styles.memoRow, showDocDateRule ? styles.memoRowRuled : {}]}>
+          <View style={styles.memoRow}>
             <View style={styles.docDateCol}>
-              <Text style={styles.memoLabel}>ที่</Text>
-              <MemoValue value={docnum} />
+              <MemoLine label="ที่" value={docnum} />
             </View>
             <View style={styles.docDateCol}>
-              <Text style={styles.memoLabel}>วันที่</Text>
-              <MemoValue value={date} />
+              {/* เส้นวันที่คงไว้เสมอ เพื่อให้กรอกเพิ่มเติมในเอกสารได้ */}
+              <View style={styles.memoDateRule} />
+              <MemoLine label="วันที่" value={date} />
             </View>
           </View>
 
           <View style={[styles.memoRow, styles.memoSeparator]}>
-            <Text style={styles.memoLabel}>เรื่อง</Text>
-            <MemoValue value={subject} />
+            <MemoLine label="เรื่อง" value={subject} />
           </View>
         </View>
 

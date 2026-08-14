@@ -8,13 +8,13 @@ export async function POST() {
   try {
     if (!isStripeConfigured()) {
       return NextResponse.json(
-        { error: "ยังไม่ได้ตั้งค่า Stripe" },
+        { error: "ขณะนี้ยังไม่พร้อมจัดการการสมัคร" },
         { status: 503 },
       );
     }
     const stripe = getStripe();
     if (!stripe) {
-      return NextResponse.json({ error: "Stripe ไม่พร้อม" }, { status: 503 });
+      return NextResponse.json({ error: "ระบบชำระเงินยังไม่พร้อม" }, { status: 503 });
     }
 
     const ctx = await requireOrgContext([
@@ -24,7 +24,7 @@ export async function POST() {
 
     if (!ctx.organization.stripeCustomerId) {
       return NextResponse.json(
-        { error: "ยังไม่มีบัญชี Stripe — อัปเกรดแผนก่อน" },
+        { error: "ยังไม่มีข้อมูลการสมัคร — อัปเกรดแผนก่อน" },
         { status: 400 },
       );
     }

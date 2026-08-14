@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent, useMemo, useRef, useState, useTransition } from "react";
-import Link from "next/link";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { ExternalLetterPayload, Urgency } from "@/lib/documents/external/schema";
 import {
@@ -11,6 +10,8 @@ import {
   overSoftLimit,
 } from "@/lib/documents/limits";
 import { ExternalLetterPreview } from "@/components/documents/ExternalLetterPreview";
+import { OfficialEditorFrame } from "@/components/editor/OfficialEditorFrame";
+import { useDocumentPersistence } from "@/components/editor/useDocumentPersistence";
 import { duplicateDocumentAction, saveDocumentAction } from "@/lib/actions/documents";
 
 type Props = {
@@ -19,18 +20,17 @@ type Props = {
   initialPayload: ExternalLetterPayload;
 };
 
-const AUTOSAVE_MS = 20_000;
-
 export function ExternalEditor({ documentId, initialStatus, initialPayload }: Props) {
   const router = useRouter();
   const [payload, setPayload] = useState<ExternalLetterPayload>(initialPayload);
   const [status, setStatus] = useState<"DRAFT" | "FINAL">(initialStatus);
-  const [message, setMessage] = useState<string | null>(null);
   const [zoomOpen, setZoomOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<"form" | "preview">("form");
   const [pending, startTransition] = useTransition();
-  const dirtyRef = useRef(false);
-  const savingRef = useRef(false);
+  const { persist, markDirty, persistStatus, message, messageTone, setMessage } =
+    useDocumentPersistence(() =>
+      saveDocumentAction({ id: documentId, status, payload }),
+    );
 
   const title = useMemo(
     () => payload.subject.trim() || "หนังสือภายนอก",
@@ -42,10 +42,6 @@ export function ExternalEditor({ documentId, initialStatus, initialPayload }: Pr
     [payload.paragraphs],
   );
   const bodyOverBudget = bodyChars > DOC_SOFT_LIMITS.bodyTotal;
-
-  function markDirty() {
-    dirtyRef.current = true;
-  }
 
   function update<K extends keyof ExternalLetterPayload>(
     key: K,
@@ -74,6 +70,8 @@ export function ExternalEditor({ documentId, initialStatus, initialPayload }: Pr
   }
 
   function removeListItem(key: "references" | "attachments", index: number) {
+    const ok = window.confirm("ต้องการลบรายการนี้หรือไม่?");
+    if (!ok) return;
     setPayload((prev) => {
       const list = prev[key].filter((_, i) => i !== index);
       return { ...prev, [key]: list.length ? list : [""] };
@@ -92,142 +90,58 @@ export function ExternalEditor({ documentId, initialStatus, initialPayload }: Pr
     markDirty();
   }
 
-  const persist = useEffectEvent(async (opts?: { silent?: boolean }) => {
-    if (savingRef.current) return false;
-    savingRef.current = true;
-    try {
-      const result = await saveDocumentAction({
-        id: documentId,
-        status,
-        payload,
-      });
-      if (!result.ok) {
-        if (!opts?.silent) setMessage(result.error ?? "บันทึกไม่สำเร็จ");
-        return false;
-      }
-      dirtyRef.current = false;
-      setMessage(opts?.silent ? "บันทึกอัตโนมัติแล้ว" : "บันทึกแล้ว");
-      return true;
-    } finally {
-      savingRef.current = false;
-    }
-  });
-
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      if (!dirtyRef.current) return;
-      void persist({ silent: true });
-    }, AUTOSAVE_MS);
-    return () => window.clearInterval(id);
-  }, [persist]);
-
-  function save() {
-    startTransition(async () => {
-      const ok = await persist();
-      if (ok) router.refresh();
-    });
-  }
-
-  function duplicate() {
-    startTransition(async () => {
-      await persist({ silent: true });
-      const result = await duplicateDocumentAction(documentId);
-      if (!result.ok || !result.documentId) {
-        setMessage(result.error ?? "คัดลอกไม่สำเร็จ");
-        return;
-      }
-      router.push(`/documents/${result.documentId}`);
-    });
-  }
-
-  async function exportWord() {
-    await persist({ silent: true });
-    window.location.href = `/api/export/docx?id=${documentId}`;
-  }
-
-  function exportPdf() {
-    startTransition(async () => {
-      await persist({ silent: true });
-      window.location.href = `/api/export/pdf?id=${documentId}`;
-    });
-  }
-
   return (
-    <div className="space-y-4">
-      <div className="no-print flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-sm text-[var(--text-muted)]">กำลังแก้ไข</p>
-          <h1 className="text-xl font-medium text-[var(--text-main)]">{title}</h1>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/documents" className="btn-text">
-            ประวัติเอกสาร
-          </Link>
-          <button type="button" className="btn-text" onClick={duplicate} disabled={pending}>
-            คัดลอก
-          </button>
-          <button type="button" className="btn-text" onClick={() => setZoomOpen(true)}>
-            ขยายพรีวิว
-          </button>
-          <button type="button" className="btn-secondary" onClick={exportPdf} disabled={pending}>
-            ดาวน์โหลด PDF
-          </button>
-          <button type="button" className="btn-secondary" onClick={exportWord} disabled={pending}>
-            Word
-          </button>
-          <button type="button" className="btn-primary" onClick={save} disabled={pending}>
-            {pending ? "กำลังบันทึก..." : "บันทึก"}
-          </button>
-        </div>
-      </div>
-
-      {message ? (
-        <p className="rounded-md bg-[#f3f1ff] px-3 py-2 text-sm text-[var(--primary-color)]">
-          {message}
-        </p>
-      ) : null}
-
-      <div className="mobile-editor-tabs">
-        <button
-          type="button"
-          className={mobileTab === "form" ? "active" : ""}
-          onClick={() => setMobileTab("form")}
-        >
-          ฟอร์ม
-        </button>
-        <button
-          type="button"
-          className={mobileTab === "preview" ? "active" : ""}
-          onClick={() => setMobileTab("preview")}
-        >
-          พรีวิว
-        </button>
-      </div>
-
-      <div className="flex flex-wrap gap-4 items-center">
-        <label className="text-sm flex items-center gap-2">
-          สถานะ
-          <select
-            className="field"
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value as "DRAFT" | "FINAL");
-              markDirty();
-            }}
-            style={{ width: "auto", marginBottom: 0 }}
-          >
-            <option value="DRAFT">ฉบับร่าง</option>
-            <option value="FINAL">สมบูรณ์</option>
-          </select>
-        </label>
-        <span className="text-sm text-[var(--text-muted)]">
-          ประเภท: หนังสือภายนอก (แบบที่ 1 ตามระเบียบสารบรรณ)
-        </span>
-      </div>
-
-      <div className={`content-wrapper mobile-tab-${mobileTab}`}>
-        <section className="form-section editor-form-panel no-print">
-          <h2>กรอกข้อมูลสำหรับหนังสือภายนอก</h2>
+    <OfficialEditorFrame
+      title={title}
+      typeLabel="ประเภท: หนังสือภายนอก (แบบที่ 1 ตามระเบียบสารบรรณ)"
+      formTitle="กรอกข้อมูลสำหรับหนังสือภายนอก"
+      message={message}
+      messageTone={messageTone}
+      persistStatus={persistStatus}
+      pending={pending}
+      status={status}
+      onStatus={(s) => {
+        setStatus(s);
+        markDirty();
+      }}
+      mobileTab={mobileTab}
+      setMobileTab={setMobileTab}
+      onSave={() =>
+        startTransition(async () => {
+          const ok = await persist();
+          if (ok) router.refresh();
+        })
+      }
+      onDuplicate={() =>
+        startTransition(async () => {
+          const ok = await persist({ silent: true });
+          if (!ok) return;
+          const result = await duplicateDocumentAction(documentId);
+          if (!result.ok || !result.documentId) {
+            setMessage(result.error ?? "คัดลอกไม่สำเร็จ");
+            return;
+          }
+          router.push(`/documents/${result.documentId}`);
+        })
+      }
+      onPdf={() =>
+        startTransition(async () => {
+          const ok = await persist({ silent: true });
+          if (!ok) return;
+          window.location.href = `/api/export/pdf?id=${documentId}`;
+        })
+      }
+      onWord={() =>
+        startTransition(async () => {
+          const ok = await persist({ silent: true });
+          if (!ok) return;
+          window.location.href = `/api/export/docx?id=${documentId}`;
+        })
+      }
+      zoomOpen={zoomOpen}
+      setZoomOpen={setZoomOpen}
+      form={
+        <>
 
           <div className="form-group">
             <label>ชั้นความเร็ว</label>
@@ -508,24 +422,10 @@ export function ExternalEditor({ documentId, initialStatus, initialPayload }: Pr
               />
             </div>
           </div>
-        </section>
-
-        <aside className="preview-section editor-preview-panel">
-          <div className="preview-label">พรีวิวสด</div>
-          <div className="preview-frame">
-            <ExternalLetterPreview data={payload} />
-          </div>
-        </aside>
-      </div>
-
-      {zoomOpen ? (
-        <div className="zoom-modal" role="dialog">
-          <button type="button" className="zoom-close" onClick={() => setZoomOpen(false)}>
-            ปิด
-          </button>
-          <ExternalLetterPreview data={payload} printMode />
-        </div>
-      ) : null}
-    </div>
+        </>
+      }
+      preview={<ExternalLetterPreview data={payload} />}
+      zoomPreview={<ExternalLetterPreview data={payload} printMode />}
+    />
   );
 }

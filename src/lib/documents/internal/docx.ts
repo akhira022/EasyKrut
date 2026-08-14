@@ -5,13 +5,13 @@ import {
   HorizontalPositionAlign,
   HorizontalPositionRelativeFrom,
   ImageRun,
-  LeaderType,
   LineRuleType,
   Packer,
   Paragraph,
   TabStopType,
   TextRun,
   TextWrappingType,
+  UnderlineType,
   VerticalPositionAlign,
   VerticalPositionRelativeFrom,
   convertInchesToTwip,
@@ -24,11 +24,7 @@ import { getThaiDate, toThaiNumber } from "@/lib/thai";
 const FONT = "TH SarabunPSK";
 const SIZE = 32;
 
-const RULE_BORDER = {
-  bottom: { style: BorderStyle.SINGLE, size: 6, color: "000000", space: 1 },
-};
-
-/** เส้นคั่นระหว่างส่วนหัวกับเนื้อหา — หนากว่าเส้นประจำช่อง (size หน่วย 1/8 pt) */
+/** เส้นคั่นระหว่างส่วนหัวกับเนื้อหา (size หน่วย 1/8 pt) */
 const SEPARATOR_BORDER = {
   bottom: { style: BorderStyle.SINGLE, size: 12, color: "000000", space: 1 },
 };
@@ -36,41 +32,36 @@ const SEPARATOR_BORDER = {
 /** ป้ายหัวเรื่อง 20pt ตัวหนา (size หน่วย half-point) */
 const LABEL_SIZE = 40;
 
-/** ช่องที่ยังไม่กรอกเติมจุดไข่ปลาถึงขอบขวาของช่อง */
-function dottedTabStops(position: number) {
-  return [{ type: TabStopType.RIGHT, position, leader: LeaderType.DOT }];
-}
-
-function run(text: string, opts?: { bold?: boolean; color?: string; size?: number }) {
+function run(
+  text: string,
+  opts?: { bold?: boolean; color?: string; size?: number; dotted?: boolean },
+) {
   return new TextRun({
     text,
     font: FONT,
     size: opts?.size ?? SIZE,
     bold: opts?.bold,
     color: opts?.color,
+    underline: opts?.dotted ? { type: UnderlineType.DOTTED, color: "000000" } : undefined,
   });
 }
 
 /** ความกว้างเนื้อหา A4 หลังหักมาร์จินซ้าย/ขวา (twips) */
 const CONTENT_WIDTH = convertInchesToTwip(8.27 - 1.18 - 0.79);
 
+/** ครุฑสูง 60px (0.625") หัวข้อสูง ~1 บรรทัด 18pt — ดันหัวข้อลงให้ท้ายบรรทัดตรงเท้าครุฑ */
+const TITLE_DROP = convertInchesToTwip(0.625 - 18 * 1.15 / 72);
+
 function richLabel(
   label: string,
   value: string,
-  opts?: { ruled?: boolean; separator?: boolean },
+  opts?: { separator?: boolean },
 ) {
-  const border = opts?.separator
-    ? SEPARATOR_BORDER
-    : opts?.ruled
-      ? RULE_BORDER
-      : undefined;
+  const border = opts?.separator ? SEPARATOR_BORDER : undefined;
   return new Paragraph({
     spacing: { after: border ? 40 : 100 },
     border,
-    tabStops: value.trim() ? undefined : dottedTabStops(CONTENT_WIDTH),
-    children: value.trim()
-      ? [run(label, { bold: true, size: LABEL_SIZE }), run(`  ${value}`)]
-      : [run(label, { bold: true, size: LABEL_SIZE }), run("  "), run("\t")],
+    children: [run(label, { bold: true, size: LABEL_SIZE }), run(`  ${value}`)],
   });
 }
 
@@ -104,11 +95,11 @@ export async function buildInternalDocx(data: InternalLetterPayload): Promise<Bu
       altText: { title: "ครุฑ", description: "ตราครุฑ", name: "krut" },
       floating: {
         horizontalPosition: {
-          relative: HorizontalPositionRelativeFrom.PAGE,
+          relative: HorizontalPositionRelativeFrom.MARGIN,
           align: HorizontalPositionAlign.LEFT,
         },
         verticalPosition: {
-          relative: VerticalPositionRelativeFrom.PAGE,
+          relative: VerticalPositionRelativeFrom.MARGIN,
           align: VerticalPositionAlign.TOP,
         },
         wrap: { type: TextWrappingType.NONE },
@@ -130,10 +121,11 @@ export async function buildInternalDocx(data: InternalLetterPayload): Promise<Bu
     );
   }
 
+  // ครุฑลอยชิดซ้ายบน · หัวข้อจัดกลางหน้าและดันลงมาอยู่ระดับเท้าครุฑ
   children.push(
     new Paragraph({
       alignment: AlignmentType.CENTER,
-      spacing: { after: 80 },
+      spacing: { before: TITLE_DROP, after: 80 },
       children: [
         ...(garuda ? [garuda] : []),
         run("บันทึกข้อความ", { bold: true, size: 36 }),
@@ -141,27 +133,24 @@ export async function buildInternalDocx(data: InternalLetterPayload): Promise<Bu
     }),
   );
 
-  const showAgencyRule = data.showAgencyRule ?? true;
-  const showDocDateRule = data.showDocDateRule ?? true;
-
-  children.push(richLabel("ส่วนราชการ", agencyName, { ruled: showAgencyRule }));
+  children.push(richLabel("ส่วนราชการ", agencyName));
   const halfWidth = Math.round(CONTENT_WIDTH / 2);
   children.push(
     new Paragraph({
-      spacing: { after: showDocDateRule ? 40 : 100 },
-      border: showDocDateRule ? RULE_BORDER : undefined,
+      spacing: { after: 100 },
       tabStops: [
-        { type: TabStopType.RIGHT, position: halfWidth - 200, leader: docnum.trim() ? LeaderType.NONE : LeaderType.DOT },
         { type: TabStopType.LEFT, position: halfWidth },
-        { type: TabStopType.RIGHT, position: CONTENT_WIDTH, leader: date.trim() ? LeaderType.NONE : LeaderType.DOT },
+        { type: TabStopType.RIGHT, position: CONTENT_WIDTH },
       ],
       children: [
         run("ที่", { bold: true, size: LABEL_SIZE }),
         run(`  ${docnum}`),
-        run("\t\t"),
-        run("วันที่", { bold: true, size: LABEL_SIZE }),
-        run(`  ${date}`),
         run("\t"),
+        run("วันที่", { bold: true, size: LABEL_SIZE }),
+        // เส้นประลากใต้วันที่ต่อไปจนสุดขอบขวา — ขีดเส้นใต้ทั้ง run วันที่และ tab
+        // ที่เหลือ แทนการใช้ dot leader ของ tab เพื่อให้เป็นเส้นเดียวต่อเนื่อง
+        run(`  ${date}`, { dotted: true }),
+        run("\t", { dotted: true }),
       ],
     }),
   );

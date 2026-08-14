@@ -1,5 +1,6 @@
 import { CenteredOfficialPdf } from "./CenteredOfficialPdf";
 import type { OrderLetterPayload } from "@/lib/documents/order/schema";
+import { orderHeading } from "@/lib/documents/order/schema";
 
 export function OrderDocumentPdf({
   data,
@@ -12,14 +13,17 @@ export function OrderDocumentPdf({
     <CenteredOfficialPdf
       title="คำสั่ง"
       urgency={data.urgency}
-      heading={`คำสั่ง${data.issuer}`}
+      heading={orderHeading(data.issuer)}
       docNum={data.docNum}
       subject={data.subject}
       paragraphs={data.paragraphs}
+      effectiveFrom={data.effectiveFrom}
       dateLabel="สั่ง ณ วันที่"
       date={data.date}
       signName={data.signName}
       position={data.position}
+      separator
+      variant="order"
       garudaSrc={garudaSrc}
     />
   );

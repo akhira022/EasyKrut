@@ -1,5 +1,6 @@
 import { CenteredOfficialPdf } from "./CenteredOfficialPdf";
 import type { AnnounceLetterPayload } from "@/lib/documents/announce/schema";
+import { announceHeading } from "@/lib/documents/announce/schema";
 
 export function AnnounceDocumentPdf({
   data,
@@ -12,13 +13,15 @@ export function AnnounceDocumentPdf({
     <CenteredOfficialPdf
       title={data.kind}
       urgency={data.urgency}
-      heading={`${data.kind}${data.issuer}`}
+      heading={announceHeading(data.kind, data.issuer)}
       subject={data.subject}
       paragraphs={data.paragraphs}
       dateLabel={`${data.kind} ณ วันที่`}
       date={data.date}
       signName={data.signName}
       position={data.position}
+      separator
+      variant="announce"
       garudaSrc={garudaSrc}
     />
   );

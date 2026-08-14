@@ -3,6 +3,8 @@ import { documentStatusLabel, documentTypeLabel } from "@/lib/documents/labels";
 import { getPlan } from "@/lib/entitlements";
 import { requireOrgContext } from "@/lib/org-context";
 import { prisma } from "@/lib/db";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 
 export default async function DashboardPage() {
   const ctx = await requireOrgContext();
@@ -26,17 +28,15 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-medium">แดชบอร์ด</h1>
-          <p className="text-[var(--text-muted)] text-sm mt-1">
-            {ctx.organization.name} · แผน {plan.name}
-          </p>
-        </div>
-        <Link href="/documents/new" className="btn-primary">
-          + สร้างเอกสาร
-        </Link>
-      </div>
+      <PageHeader
+        title="แดชบอร์ด"
+        description={`${ctx.organization.name} · แผน ${plan.name}`}
+        action={
+          <Link href="/documents/new" className="btn-primary">
+            สร้างเอกสาร
+          </Link>
+        }
+      />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-[var(--border-color)] bg-white p-4">
@@ -159,9 +159,7 @@ export default async function DashboardPage() {
                     {doc.updatedAt.toLocaleString("th-TH")}
                   </div>
                 </div>
-                <span className="text-xs rounded-full bg-[#eeeaff] text-[var(--primary-color)] px-2 py-1">
-                  {documentTypeLabel(doc.type)}
-                </span>
+                <StatusBadge>{documentTypeLabel(doc.type)}</StatusBadge>
               </Link>
             ))}
           </div>

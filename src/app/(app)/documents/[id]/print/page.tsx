@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DocumentType } from "@/lib/constants";
 import {
@@ -24,8 +25,17 @@ export default async function PrintPage({
   const gate = canExportPdf({ planKey: ctx.organization.planKey });
   if (!gate.ok) {
     return (
-      <div className="p-8">
-        <p>{gate.reason}</p>
+      <div className="p-8 space-y-4 max-w-xl">
+        <h1 className="text-xl font-medium">ยังไม่สามารถพิมพ์ได้</h1>
+        <p className="text-sm text-[var(--text-muted)]">{gate.reason}</p>
+        <div className="flex flex-wrap gap-2">
+          <Link href={`/documents/${id}`} className="btn-secondary">
+            กลับไปแก้ไข
+          </Link>
+          <Link href="/pricing" className="btn-primary">
+            ดูแผนราคาและอัปเกรด
+          </Link>
+        </div>
       </div>
     );
   }

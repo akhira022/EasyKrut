@@ -15,7 +15,11 @@ export function AcceptInviteLoggedInForm({ token }: { token: string }) {
       <p className="text-sm text-[var(--text-muted)]">
         คุณเข้าสู่ระบบแล้ว — กดยืนยันเพื่อเข้าร่วมหน่วยงาน
       </p>
-      {state?.error ? <p className="text-sm text-red-600">{state.error}</p> : null}
+      {state?.error ? (
+        <p className="text-sm text-red-600" role="alert" aria-live="assertive">
+          {state.error}
+        </p>
+      ) : null}
       <button type="submit" className="btn-primary w-full justify-center" disabled={pending}>
         {pending ? "กำลังรับคำเชิญ..." : "ยืนยันรับคำเชิญ"}
       </button>

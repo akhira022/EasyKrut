@@ -53,8 +53,17 @@ const THAI_MONTHS = [
   "ธันวาคม",
 ];
 
+function formatThaiDateParts(day: number, monthIndex: number, ceYear: number, era?: boolean): string {
+  const body = `${toThaiNumber(day)} ${THAI_MONTHS[monthIndex]}`;
+  const year = toThaiNumber(ceYear + 543);
+  return era ? `${body} พ.ศ. ${year}` : `${body} ${year}`;
+}
+
 /** Convert ISO date (yyyy-mm-dd) to Thai Buddhist date with Thai digits */
-export function getThaiDate(dateString: string | null | undefined): string {
+export function getThaiDate(
+  dateString: string | null | undefined,
+  opts?: { era?: boolean },
+): string {
   if (!dateString) return "";
   const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateString.trim());
   if (iso) {
@@ -62,13 +71,11 @@ export function getThaiDate(dateString: string | null | undefined): string {
     const month = Number(iso[2]) - 1;
     const day = Number(iso[3]);
     if (month < 0 || month > 11 || day < 1 || day > 31) return "";
-    return `${toThaiNumber(day)} ${THAI_MONTHS[month]} ${toThaiNumber(year + 543)}`;
+    return formatThaiDateParts(day, month, year, opts?.era);
   }
   const d = new Date(dateString);
   if (Number.isNaN(d.getTime())) return "";
-  const day = toThaiNumber(d.getDate());
-  const year = toThaiNumber(d.getFullYear() + 543);
-  return `${day} ${THAI_MONTHS[d.getMonth()]} ${year}`;
+  return formatThaiDateParts(d.getDate(), d.getMonth(), d.getFullYear(), opts?.era);
 }
 
 export function currentYearMonth(date = new Date()): string {

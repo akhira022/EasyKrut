@@ -1,5 +1,6 @@
 import {
   AlignmentType,
+  BorderStyle,
   Document,
   ImageRun,
   LineRuleType,
@@ -14,6 +15,11 @@ import { getThaiDate, toThaiNumber } from "@/lib/thai";
 
 const FONT = "TH SarabunPSK";
 const SIZE = 32;
+
+/** เส้นคั่นระหว่างส่วนหัวกับเนื้อหา (size หน่วย 1/8 pt) */
+const SEPARATOR_BORDER = {
+  bottom: { style: BorderStyle.SINGLE, size: 12, color: "000000", space: 1 },
+};
 
 export function run(text: string, opts?: { bold?: boolean; color?: string; size?: number }) {
   return new TextRun({
@@ -40,7 +46,8 @@ export async function loadGaruda(): Promise<ImageRun | null> {
   }
 }
 
-export function a4Section(children: Paragraph[]) {
+export function a4Section(children: Paragraph[], opts?: { topCm?: number }) {
+  const topCm = opts?.topCm ?? 2.5;
   return new Document({
     sections: [
       {
@@ -51,7 +58,7 @@ export function a4Section(children: Paragraph[]) {
               height: convertInchesToTwip(11.69),
             },
             margin: {
-              top: convertInchesToTwip(0.98),
+              top: convertInchesToTwip(topCm / 2.54),
               left: convertInchesToTwip(1.18),
               right: convertInchesToTwip(0.79),
               bottom: convertInchesToTwip(0.79),
@@ -74,13 +81,22 @@ export async function buildCenteredOfficialDocx(opts: {
   date: string;
   signName: string;
   position: string;
+  effectiveFrom?: string;
+  /** เส้นคั่นใต้ «เรื่อง» ก่อนเข้าเนื้อหา */
+  separator?: boolean;
+  /** รูปแบบเฉพาะตามแบบราชการ */
+  variant?: "announce" | "order";
 }): Promise<Buffer> {
+  const announce = opts.variant === "announce";
+  const order = opts.variant === "order";
+  const officialCenter = announce || order;
   const heading = toThaiNumber(opts.heading);
   const docNum = toThaiNumber(opts.docNum ?? "");
   const subject = toThaiNumber(opts.subject);
-  const date = getThaiDate(opts.date);
+  const date = getThaiDate(opts.date, { era: officialCenter });
   const signName = toThaiNumber(opts.signName);
   const position = toThaiNumber(opts.position);
+  const effectiveFrom = toThaiNumber(opts.effectiveFrom).replace(/\s+/g, " ").trim();
   const paragraphs = (opts.paragraphs || [])
     .map((x) => toThaiNumber(x).replace(/\s+/g, " ").trim())
     .filter((x) => x);
@@ -123,7 +139,9 @@ export async function buildCenteredOfficialDocx(opts: {
   }
   children.push(
     new Paragraph({
-      spacing: { after: 100 },
+      alignment: order ? AlignmentType.CENTER : undefined,
+      spacing: { after: opts.separator ? 40 : 100 },
+      border: opts.separator ? SEPARATOR_BORDER : undefined,
       children: [run("เรื่อง  "), run(subject)],
     }),
   );
@@ -137,27 +155,49 @@ export async function buildCenteredOfficialDocx(opts: {
       }),
     );
   }
+  if (order && effectiveFrom) {
+    children.push(
+      new Paragraph({
+        spacing: { before: 120, after: 0, line: 276, lineRule: LineRuleType.AUTO },
+        indent: { firstLine: convertInchesToTwip(0.98) },
+        alignment: AlignmentType.THAI_DISTRIBUTE,
+        children: [run(`ทั้งนี้ ตั้งแต่ ${effectiveFrom}`)],
+      }),
+    );
+  }
+  const signIndent = officialCenter ? undefined : { left: convertInchesToTwip(3.15) };
   if (date) {
     children.push(
       new Paragraph({
-        indent: { left: convertInchesToTwip(3.15) },
+        indent: signIndent,
         alignment: AlignmentType.CENTER,
-        spacing: { before: 200, after: 80 },
+        spacing: { before: officialCenter ? 240 : 200, after: officialCenter ? 0 : 80 },
         children: [run(`${opts.dateLabel} ${date}`)],
       }),
     );
   }
-  children.push(
-    new Paragraph({
-      indent: { left: convertInchesToTwip(3.15) },
-      spacing: { after: 200 },
-      children: [run(" ")],
-    }),
-  );
+  if (officialCenter) {
+    for (let i = 0; i < 4; i++) {
+      children.push(
+        new Paragraph({
+          spacing: { after: 0, line: 276, lineRule: LineRuleType.AUTO },
+          children: [run("")],
+        }),
+      );
+    }
+  } else {
+    children.push(
+      new Paragraph({
+        indent: signIndent,
+        spacing: { after: 200 },
+        children: [run(" ")],
+      }),
+    );
+  }
   if (signName) {
     children.push(
       new Paragraph({
-        indent: { left: convertInchesToTwip(3.15) },
+        indent: signIndent,
         alignment: AlignmentType.CENTER,
         children: [run(`(${signName})`)],
       }),
@@ -170,12 +210,14 @@ export async function buildCenteredOfficialDocx(opts: {
     .forEach((line) => {
       children.push(
         new Paragraph({
-          indent: { left: convertInchesToTwip(3.15) },
+          indent: signIndent,
           alignment: AlignmentType.CENTER,
           children: [run(line)],
         }),
       );
     });
 
-  return Buffer.from(await Packer.toBuffer(a4Section(children)));
+  return Buffer.from(
+    await Packer.toBuffer(a4Section(children, officialCenter ? { topCm: 1.5 } : undefined)),
+  );
 }

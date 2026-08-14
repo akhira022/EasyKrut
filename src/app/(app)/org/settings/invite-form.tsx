@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import type { ActionResult } from "@/lib/actions/auth";
+import { FormField } from "@/components/ui/FormField";
 
 const initial: ActionResult | null = null;
 
@@ -15,21 +16,27 @@ export function InviteForm({
   return (
     <form action={formAction} className="space-y-3">
       <div className="form-row">
-        <div className="form-group">
-          <label>อีเมล</label>
-          <input className="field" name="email" type="email" required />
-        </div>
-        <div className="form-group" style={{ flex: 0.6 }}>
-          <label>บทบาท</label>
+        <FormField id="invite-email" label="อีเมล" error={state?.error}>
+          <input
+            className="field"
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            inputMode="email"
+          />
+        </FormField>
+        <FormField id="invite-role" label="บทบาท">
           <select className="field" name="role" defaultValue="MEMBER">
-            <option value="MEMBER">MEMBER</option>
-            <option value="ADMIN">ADMIN</option>
+            <option value="MEMBER">สมาชิก</option>
+            <option value="ADMIN">ผู้ดูแล</option>
           </select>
-        </div>
+        </FormField>
       </div>
-      {state?.error ? <p className="text-sm text-red-600">{state.error}</p> : null}
       {state?.message ? (
-        <p className="text-sm text-green-700 break-all">{state.message}</p>
+        <p className="text-sm text-green-700 break-all" role="status" aria-live="polite">
+          {state.message}
+        </p>
       ) : null}
       <button type="submit" className="btn-primary" disabled={pending}>
         {pending ? "กำลังสร้าง..." : "สร้างคำเชิญ"}

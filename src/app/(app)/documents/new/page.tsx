@@ -11,6 +11,8 @@ import {
 } from "@/lib/actions/documents";
 import { canCreateDocument, getPlan } from "@/lib/entitlements";
 import { requireOrgContext } from "@/lib/org-context";
+import { Alert } from "@/components/ui/Alert";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 async function createAndRedirect(
   create: () => Promise<{ ok: boolean; documentId?: string; error?: string }>,
@@ -126,32 +128,27 @@ export default async function NewDocumentPage({
 
   return (
     <div className="space-y-8 max-w-4xl">
-      <div>
-        <p className="text-sm text-[var(--text-muted)] mb-2">
-          <Link href="/documents" className="text-[var(--primary-color)] hover:underline">
-            ประวัติเอกสาร
-          </Link>
-          <span className="mx-2">/</span>
-          สร้างใหม่
-        </p>
-        <h1 className="text-2xl font-medium">เลือกประเภทเอกสาร</h1>
-        <p className="text-sm text-[var(--text-muted)] mt-1">
-          แต่ละแบบมีเลย์เอาต์และช่องกรอกต่างกัน · แผน {plan.name} ใช้ไปแล้ว{" "}
-          {ctx.docsCreatedThisMonth}/{ctx.organization.docLimitMonthly} ฉบับเดือนนี้
-        </p>
-      </div>
+      <PageHeader
+        title="เลือกประเภทเอกสาร"
+        description={`แต่ละแบบมีเลย์เอาต์และช่องกรอกต่างกัน · แผน ${plan.name} ใช้ไปแล้ว ${ctx.docsCreatedThisMonth}/${ctx.organization.docLimitMonthly} ฉบับเดือนนี้`}
+      />
+      <p className="text-sm text-[var(--text-muted)]">
+        <Link href="/documents" className="text-[var(--primary-color)] hover:underline">
+          ประวัติเอกสาร
+        </Link>
+        <span className="mx-2">/</span>
+        สร้างใหม่
+      </p>
 
-      {sp.error ? (
-        <p className="rounded-md bg-red-50 text-red-700 px-3 py-2 text-sm">{sp.error}</p>
-      ) : null}
+      {sp.error ? <Alert tone="error">{sp.error}</Alert> : null}
 
       {!gate.ok ? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 space-y-2">
+        <Alert tone="warn">
           <p>{gate.reason}</p>
           <Link href="/pricing" className="text-[var(--primary-color)] hover:underline">
             ดูแผนราคาและอัปเกรด
           </Link>
-        </div>
+        </Alert>
       ) : null}
 
       <section className="space-y-3">

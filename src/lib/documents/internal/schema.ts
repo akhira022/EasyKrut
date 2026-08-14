@@ -18,10 +18,6 @@ export const internalLetterSchema = z.object({
     .default("จึงเรียนมาเพื่อโปรดทราบ"),
   signName: z.string().default(""),
   position: z.string().default(""),
-  /** เส้นใต้แถวส่วนราชการ (ปิดได้จาก editor) */
-  showAgencyRule: z.boolean().default(false),
-  /** เส้นใต้แถวที่ / วันที่ (ปิดได้จาก editor; เส้นคั่นใต้เรื่องคงไว้เสมอ) */
-  showDocDateRule: z.boolean().default(false),
 });
 
 export type InternalLetterPayload = z.infer<typeof internalLetterSchema>;

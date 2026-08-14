@@ -43,7 +43,7 @@ export function BillingActions({
           onClick={openPortal}
           disabled={pending}
         >
-          {pending ? "กำลังเปิด..." : "จัดการการสมัคร (Stripe)"}
+          {pending ? "กำลังเปิด..." : "จัดการการสมัคร"}
         </button>
       ) : null}
       {error ? <p className="text-xs text-red-600 w-full">{error}</p> : null}

@@ -24,3 +24,16 @@ export function documentTypeLabel(type: string): string {
 export function documentStatusLabel(status: string): string {
   return status === DocumentStatus.FINAL ? "สมบูรณ์" : "ร่าง";
 }
+
+export function membershipRoleLabel(role: string): string {
+  switch (role) {
+    case "OWNER":
+      return "เจ้าของ";
+    case "ADMIN":
+      return "ผู้ดูแล";
+    case "MEMBER":
+      return "สมาชิก";
+    default:
+      return role;
+  }
+}

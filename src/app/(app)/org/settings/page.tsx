@@ -6,8 +6,11 @@ import {
 import { BillingActions } from "@/components/billing/BillingActions";
 import { getPlan } from "@/lib/entitlements";
 import { prisma } from "@/lib/db";
+import { membershipRoleLabel } from "@/lib/documents/labels";
 import { requireOrgContext } from "@/lib/org-context";
 import { isStripeConfigured } from "@/lib/stripe";
+import { Alert } from "@/components/ui/Alert";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { InviteForm } from "./invite-form";
 import { TemplateForm } from "./template-form";
 
@@ -45,20 +48,29 @@ export default async function OrgSettingsPage({
 
   return (
     <div className="space-y-8 max-w-3xl">
-      <div>
-        <h1 className="text-2xl font-medium">หน่วยงาน</h1>
-        <p className="text-sm text-[var(--text-muted)] mt-1">
-          {ctx.organization.name} · แผน {plan.name} ({ctx.organization.planKey})
-        </p>
-      </div>
+      <PageHeader
+        title="หน่วยงาน"
+        description={`${ctx.organization.name} · แผน ${plan.name}`}
+      />
+
+      <nav className="flex flex-wrap gap-2 text-sm" aria-label="ส่วนตั้งค่า">
+        <a href="#quota" className="btn-text">โควตา</a>
+        <a href="#members" className="btn-text">สมาชิก</a>
+        {canManage ? (
+          <>
+            <a href="#invite" className="btn-text">เชิญสมาชิก</a>
+            <a href="#template" className="btn-text">เทมเพลต</a>
+          </>
+        ) : null}
+      </nav>
 
       {sp.billing === "success" ? (
-        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-          ชำระเงินสำเร็จแล้ว — แผนของคุณจะอัปเดตเมื่อ Stripe webhook ยืนยัน
-        </div>
+        <Alert tone="success">
+          ชำระเงินสำเร็จแล้ว — แผนของคุณจะอัปเดตเมื่อระบบยืนยันการชำระเงิน
+        </Alert>
       ) : null}
 
-      <section className="rounded-xl border border-[var(--border-color)] bg-white p-5 space-y-3">
+      <section id="quota" className="rounded-xl border border-[var(--border-color)] bg-white p-5 space-y-3">
         <h2 className="font-medium">โควตาและการใช้งาน</h2>
         <p className="text-sm text-[var(--text-muted)]">
           สมาชิก {ctx.memberCount}/{ctx.organization.seatLimit} · เอกสารเดือนนี้{" "}
@@ -73,13 +85,13 @@ export default async function OrgSettingsPage({
         ) : null}
         {!stripeReady ? (
           <p className="text-xs text-[var(--text-muted)]">
-            Stripe ยังไม่เปิด — เมื่อชนลิมิตระบบจะบล็อกและแนะนำอัปเกรดตามแผนในหน้า
-            Pricing
+            การชำระเงินอัตโนมัติยังไม่พร้อม — เมื่อชนลิมิตระบบจะบล็อกและแนะนำอัปเกรดในหน้า
+            ราคา
           </p>
         ) : null}
       </section>
 
-      <section className="rounded-xl border border-[var(--border-color)] bg-white p-5">
+      <section id="members" className="rounded-xl border border-[var(--border-color)] bg-white p-5">
         <h2 className="font-medium mb-3">สมาชิก</h2>
         <ul className="divide-y text-sm">
           {members.map((m) => (
@@ -89,7 +101,7 @@ export default async function OrgSettingsPage({
                 <span className="text-[var(--text-muted)]">({m.user.email})</span>
               </span>
               <span className="text-xs rounded-full bg-[#eeeaff] px-2 py-1 text-[var(--primary-color)]">
-                {m.role}
+                {membershipRoleLabel(m.role)}
               </span>
             </li>
           ))}
@@ -98,7 +110,7 @@ export default async function OrgSettingsPage({
 
       {canManage ? (
         <>
-          <section className="rounded-xl border border-[var(--border-color)] bg-white p-5 space-y-4">
+          <section id="invite" className="rounded-xl border border-[var(--border-color)] bg-white p-5 space-y-4">
             <h2 className="font-medium">เชิญสมาชิก</h2>
             <InviteForm action={inviteMemberAction} />
             {invitations.length > 0 ? (
@@ -113,7 +125,7 @@ export default async function OrgSettingsPage({
             ) : null}
           </section>
 
-          <section className="rounded-xl border border-[var(--border-color)] bg-white p-5 space-y-4">
+          <section id="template" className="rounded-xl border border-[var(--border-color)] bg-white p-5 space-y-4">
             <h2 className="font-medium">เทมเพลตหน่วยงาน</h2>
             <p className="text-sm text-[var(--text-muted)]">
               ค่าเริ่มต้นตอนสร้างหนังสือภายนอกใหม่

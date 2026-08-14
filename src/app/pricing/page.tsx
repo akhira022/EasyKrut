@@ -1,44 +1,36 @@
-import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { PLAN_DEFINITIONS } from "@/lib/entitlements";
 import { isStripeConfigured } from "@/lib/stripe";
+import { getActiveMembership } from "@/lib/org-context";
 import { PricingCheckoutButton } from "@/components/billing/PricingCheckoutButton";
+import { AppHeader } from "@/components/nav/AppHeader";
+import { PublicHeader } from "@/components/nav/PublicHeader";
 
 export default async function PricingPage() {
   const plans = Object.values(PLAN_DEFINITIONS);
   const session = await auth();
   const stripeReady = isStripeConfigured();
+  const membership = session?.user?.id
+    ? await getActiveMembership(session.user.id)
+    : null;
 
   return (
     <div className="min-h-screen">
-      <header className="app-header">
-        <Link href="/" className="font-medium tracking-wide">
-          EASYKRUT
-        </Link>
-        <div className="flex gap-3">
-          {session?.user ? (
-            <Link href="/dashboard" className="btn-primary">
-              แดชบอร์ด
-            </Link>
-          ) : (
-            <>
-              <Link href="/login" className="btn-text">
-                เข้าสู่ระบบ
-              </Link>
-              <Link href="/register" className="btn-primary">
-                เริ่ม Free
-              </Link>
-            </>
-          )}
-        </div>
-      </header>
+      {session?.user ? (
+        <AppHeader
+          userName={session.user.name ?? ""}
+          orgName={membership?.organization.name ?? "—"}
+        />
+      ) : (
+        <PublicHeader primaryHref="/register" primaryLabel="เริ่ม Free" />
+      )}
 
-      <main className="mx-auto max-w-5xl px-6 py-16">
+      <main className={session?.user ? "app-main" : "mx-auto max-w-5xl px-4 sm:px-6 py-16"}>
         <h1 className="text-3xl font-medium text-center">แผนราคา</h1>
         <p className="text-center text-[var(--text-muted)] mt-2 mb-10">
           {stripeReady
-            ? "ชำระเงินผ่าน Stripe Checkout ได้แล้ว"
-            : "ใส่ STRIPE_SECRET_KEY และ STRIPE_PRICE_PRO / STRIPE_PRICE_BUSINESS ใน .env เพื่อเปิดชำระเงิน"}
+            ? "เลือกแผนแล้วชำระเงินเพื่อเพิ่มโควตาเอกสารและสมาชิก"
+            : "ขณะนี้รับชำระเงินอัตโนมัติยังไม่พร้อม — สมัครแผน Free ได้ทันที หรือติดต่อผู้ดูแลเมื่อต้องการอัปเกรด"}
         </p>
 
         <div className="grid gap-6 md:grid-cols-3">
@@ -62,8 +54,8 @@ export default async function PricingPage() {
                     ? "ไม่จำกัด"
                     : `${plan.docLimitMonthly}/เดือน`}
                 </li>
-                <li>Export PDF {plan.exportPdf ? "ได้" : "ไม่ได้"}</li>
-                <li>Export Word {plan.exportWord ? "ได้" : "ไม่ได้"}</li>
+                <li>ดาวน์โหลด PDF {plan.exportPdf ? "ได้" : "ไม่ได้"}</li>
+                <li>ดาวน์โหลด Word {plan.exportWord ? "ได้" : "ไม่ได้"}</li>
               </ul>
               <PricingCheckoutButton
                 planKey={plan.key}

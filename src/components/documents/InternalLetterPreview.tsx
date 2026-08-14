@@ -56,10 +56,13 @@ function MetaList({
   );
 }
 
-/** ค่าที่ยังไม่กรอกแสดงเป็นจุดไข่ปลาเต็มช่อง ตามแบบฟอร์มบันทึกข้อความ */
-function MemoValue({ value }: { value: string }) {
-  if (!value.trim()) return <span className="doc-memo-dots" aria-hidden="true" />;
-  return <span className="doc-meta-value">{value}</span>;
+/** วันที่คงเส้นจุดไข่ปลาไว้เสมอ เพื่อให้กรอกเพิ่มเติมในเอกสารได้ */
+/**
+ * วันที่พร้อมเส้นประที่ลากใต้ข้อความไปจนสุดขอบขวา
+ * ใส่ zero-width space ตอนยังไม่กรอก เพื่อให้กล่องมี baseline เท่ากันทั้งสองกรณี
+ */
+function MemoDate({ value }: { value: string }) {
+  return <span className="doc-memo-date-rule">{value || "\u200B"}</span>;
 }
 
 export function InternalLetterPreview({ data, className = "", printMode }: Props) {
@@ -76,8 +79,6 @@ export function InternalLetterPreview({ data, className = "", printMode }: Props
   const paragraphs = (data.paragraphs || [])
     .map((p) => toThaiNumber(p).replace(/\s+/g, " ").trim())
     .filter((p) => p !== "");
-  const showAgencyRule = data.showAgencyRule ?? true;
-  const showDocDateRule = data.showDocDateRule ?? true;
 
   return (
     <article
@@ -94,27 +95,25 @@ export function InternalLetterPreview({ data, className = "", printMode }: Props
       </div>
 
       <div className="doc-memo-meta">
-        {/* Header fields always render so the form skeleton stays visible while editing.
-            Ruled underlines match แบบบันทึกข้อความ (กระดาษแบบที่ 2). */}
-        <div className={`doc-meta ${showAgencyRule ? "doc-memo-ruled" : ""}`.trim()}>
+        <div className="doc-meta">
           <strong className="doc-memo-label">ส่วนราชการ</strong>
-          <MemoValue value={agencyName} />
+          <span className="doc-meta-value">{agencyName}</span>
         </div>
 
-        <div className={`doc-memo-meta-row ${showDocDateRule ? "doc-memo-ruled" : ""}`.trim()}>
+        <div className="doc-memo-meta-row">
           <span className="doc-memo-ruled-half">
             <strong className="doc-memo-label">ที่</strong>
-            <MemoValue value={docnum} />
+            <span>{docnum}</span>
           </span>
           <span className="doc-memo-ruled-half">
             <strong className="doc-memo-label">วันที่</strong>
-            <MemoValue value={date} />
+            <MemoDate value={date} />
           </span>
         </div>
 
-        <div className="doc-meta doc-memo-separator">
+        <div className="doc-meta doc-heading-separator">
           <strong className="doc-memo-label">เรื่อง</strong>
-          <MemoValue value={subject} />
+          <span className="doc-meta-value">{subject}</span>
         </div>
       </div>
 

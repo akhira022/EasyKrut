@@ -42,7 +42,7 @@ export function PricingCheckoutButton({
   if (!stripeReady) {
     return (
       <button type="button" className="mt-6 btn-secondary" disabled>
-        {label} (ตั้งค่า Stripe ใน .env)
+        ยังไม่พร้อมรับชำระเงิน
       </button>
     );
   }

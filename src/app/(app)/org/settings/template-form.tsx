@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import type { ActionResult } from "@/lib/actions/auth";
+import { FormField } from "@/components/ui/FormField";
 
 const initial: ActionResult | null = null;
 
@@ -24,8 +25,7 @@ export function TemplateForm({
 
   return (
     <form action={formAction} className="space-y-3">
-      <div className="form-group">
-        <label>ส่วนราชการเจ้าของหนังสือ</label>
+      <FormField id="tpl-agency" label="ส่วนราชการเจ้าของหนังสือ" error={state?.error}>
         <textarea
           className="field"
           name="agencyName"
@@ -33,9 +33,8 @@ export function TemplateForm({
           defaultValue={defaults.agencyName}
           placeholder={"เช่น กรมชลประทาน\nสำนักงานชลประทานที่ ๑๕"}
         />
-      </div>
-      <div className="form-group">
-        <label>ที่ตั้ง</label>
+      </FormField>
+      <FormField id="tpl-address" label="ที่ตั้ง">
         <textarea
           className="field"
           name="agencyAddress"
@@ -43,31 +42,36 @@ export function TemplateForm({
           defaultValue={defaults.agencyAddress}
           placeholder={"เช่น ตำบล… อำเภอ…\nจังหวัด… รหัสไปรษณีย์"}
         />
-      </div>
-      <div className="form-group">
-        <label>ส่วนราชการเจ้าของเรื่อง</label>
+      </FormField>
+      <FormField id="tpl-unit" label="ส่วนราชการเจ้าของเรื่อง">
         <input className="field" name="contactUnit" defaultValue={defaults.contactUnit} />
-      </div>
-      <div className="form-group">
-        <label>คำนำหน้าเลขที่หนังสือ</label>
+      </FormField>
+      <FormField id="tpl-prefix" label="คำนำหน้าเลขที่หนังสือ">
         <input className="field" name="docNumPrefix" defaultValue={defaults.docNumPrefix} />
-      </div>
+      </FormField>
       <div className="form-row">
-        <div className="form-group">
-          <label>โทร.</label>
-          <input className="field" name="tel" defaultValue={defaults.tel} />
-        </div>
-        <div className="form-group">
-          <label>โทรสาร</label>
+        <FormField id="tpl-tel" label="โทร.">
+          <input className="field" name="tel" defaultValue={defaults.tel} autoComplete="tel" />
+        </FormField>
+        <FormField id="tpl-fax" label="โทรสาร">
           <input className="field" name="fax" defaultValue={defaults.fax} />
-        </div>
+        </FormField>
       </div>
-      <div className="form-group">
-        <label>ไปรษณีย์อิเล็กทรอนิกส์</label>
-        <input className="field" name="email" defaultValue={defaults.email} />
-      </div>
-      {state?.error ? <p className="text-sm text-red-600">{state.error}</p> : null}
-      {state?.ok ? <p className="text-sm text-green-700">บันทึกเทมเพลตแล้ว</p> : null}
+      <FormField id="tpl-email" label="ไปรษณีย์อิเล็กทรอนิกส์">
+        <input
+          className="field"
+          name="email"
+          type="email"
+          defaultValue={defaults.email}
+          autoComplete="email"
+          inputMode="email"
+        />
+      </FormField>
+      {state?.ok ? (
+        <p className="text-sm text-green-700" role="status" aria-live="polite">
+          บันทึกเทมเพลตแล้ว
+        </p>
+      ) : null}
       <button type="submit" className="btn-primary" disabled={pending}>
         {pending ? "กำลังบันทึก..." : "บันทึกเทมเพลต"}
       </button>

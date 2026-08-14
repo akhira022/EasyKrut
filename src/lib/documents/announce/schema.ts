@@ -17,6 +17,12 @@ export const announceLetterSchema = z.object({
 
 export type AnnounceLetterPayload = z.infer<typeof announceLetterSchema>;
 
+/** หัวประกาศตามแบบ: «ประกาศ/แจ้งความ» ตามด้วยชื่อส่วนราชการ */
+export function announceHeading(kind: string, issuer: string): string {
+  const name = issuer.trim();
+  return name ? `${kind} ${name}` : kind;
+}
+
 export const emptyAnnounceLetter = (): AnnounceLetterPayload =>
   announceLetterSchema.parse({});
 

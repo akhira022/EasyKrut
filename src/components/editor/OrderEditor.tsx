@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent, useMemo, useRef, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Urgency } from "@/lib/documents/external/schema";
 import type { OrderLetterPayload } from "@/lib/documents/order/schema";
@@ -12,6 +12,7 @@ import {
 } from "@/lib/documents/limits";
 import { OrderLetterPreview } from "@/components/documents/OrderLetterPreview";
 import { OfficialEditorFrame } from "@/components/editor/OfficialEditorFrame";
+import { useDocumentPersistence } from "@/components/editor/useDocumentPersistence";
 import { duplicateDocumentAction, saveOrderDocumentAction } from "@/lib/actions/documents";
 
 type Props = {
@@ -24,12 +25,13 @@ export function OrderEditor({ documentId, initialStatus, initialPayload }: Props
   const router = useRouter();
   const [payload, setPayload] = useState(initialPayload);
   const [status, setStatus] = useState<"DRAFT" | "FINAL">(initialStatus);
-  const [message, setMessage] = useState<string | null>(null);
   const [zoomOpen, setZoomOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<"form" | "preview">("form");
   const [pending, startTransition] = useTransition();
-  const dirtyRef = useRef(false);
-  const savingRef = useRef(false);
+  const { persist, markDirty, persistStatus, message, messageTone, setMessage } =
+    useDocumentPersistence(() =>
+      saveOrderDocumentAction({ id: documentId, status, payload }),
+    );
 
   const title = useMemo(
     () => payload.subject.trim() || "คำสั่ง",
@@ -37,38 +39,10 @@ export function OrderEditor({ documentId, initialStatus, initialPayload }: Props
   );
   const bodyChars = useMemo(() => bodyTotalChars(payload.paragraphs), [payload.paragraphs]);
 
-  function markDirty() {
-    dirtyRef.current = true;
-  }
   function update<K extends keyof OrderLetterPayload>(key: K, value: OrderLetterPayload[K]) {
     setPayload((prev) => ({ ...prev, [key]: value }));
     markDirty();
   }
-
-  const persist = useEffectEvent(async (opts?: { silent?: boolean }) => {
-    if (savingRef.current) return false;
-    savingRef.current = true;
-    try {
-      const result = await saveOrderDocumentAction({ id: documentId, status, payload });
-      if (!result.ok) {
-        if (!opts?.silent) setMessage(result.error ?? "บันทึกไม่สำเร็จ");
-        return false;
-      }
-      dirtyRef.current = false;
-      setMessage(opts?.silent ? "บันทึกอัตโนมัติแล้ว" : "บันทึกแล้ว");
-      return true;
-    } finally {
-      savingRef.current = false;
-    }
-  });
-
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      if (!dirtyRef.current) return;
-      void persist({ silent: true });
-    }, 20_000);
-    return () => window.clearInterval(id);
-  }, [persist]);
 
   const form = (
     <>
@@ -146,7 +120,11 @@ export function OrderEditor({ documentId, initialStatus, initialPayload }: Props
               <button
                 type="button"
                 className="btn-text"
-                onClick={() => update("paragraphs", payload.paragraphs.filter((_, j) => j !== i))}
+                onClick={() => {
+                  const ok = window.confirm(`ต้องการลบย่อหน้า ${i + 1} หรือไม่?`);
+                  if (!ok) return;
+                  update("paragraphs", payload.paragraphs.filter((_, j) => j !== i));
+                }}
               >
                 ลบย่อหน้า
               </button>
@@ -160,6 +138,15 @@ export function OrderEditor({ documentId, initialStatus, initialPayload }: Props
         >
           + เพิ่มย่อหน้า
         </button>
+      </div>
+      <div className="form-group">
+        <label>ทั้งนี้ ตั้งแต่</label>
+        <input
+          className="field"
+          value={payload.effectiveFrom}
+          onChange={(e) => update("effectiveFrom", e.target.value)}
+          placeholder="เช่น บัดนี้เป็นต้นไป หรือวันที่ ๑ ตุลาคม ๒๕๖๙"
+        />
       </div>
       <div className="form-row">
         <div className="form-group">
@@ -180,6 +167,8 @@ export function OrderEditor({ documentId, initialStatus, initialPayload }: Props
       typeLabel="ประเภท: คำสั่ง (แบบที่ 4)"
       formTitle="กรอกข้อมูลคำสั่ง"
       message={message}
+      messageTone={messageTone}
+      persistStatus={persistStatus}
       pending={pending}
       status={status}
       onStatus={(s) => {
@@ -196,7 +185,8 @@ export function OrderEditor({ documentId, initialStatus, initialPayload }: Props
       }
       onDuplicate={() =>
         startTransition(async () => {
-          await persist({ silent: true });
+          const ok = await persist({ silent: true });
+          if (!ok) return;
           const result = await duplicateDocumentAction(documentId);
           if (!result.ok || !result.documentId) {
             setMessage(result.error ?? "คัดลอกไม่สำเร็จ");
@@ -207,14 +197,18 @@ export function OrderEditor({ documentId, initialStatus, initialPayload }: Props
       }
       onPdf={() =>
         startTransition(async () => {
-          await persist({ silent: true });
+          const ok = await persist({ silent: true });
+          if (!ok) return;
           window.location.href = `/api/export/pdf?id=${documentId}`;
         })
       }
-      onWord={async () => {
-        await persist({ silent: true });
-        window.location.href = `/api/export/docx?id=${documentId}`;
-      }}
+      onWord={() =>
+        startTransition(async () => {
+          const ok = await persist({ silent: true });
+          if (!ok) return;
+          window.location.href = `/api/export/docx?id=${documentId}`;
+        })
+      }
       zoomOpen={zoomOpen}
       setZoomOpen={setZoomOpen}
       form={form}

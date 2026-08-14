@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ExternalLetterPreview } from "@/components/documents/ExternalLetterPreview";
 import { InternalLetterPreview } from "@/components/documents/InternalLetterPreview";
 import { StampLetterPreview } from "@/components/documents/StampLetterPreview";
@@ -54,6 +55,9 @@ export function PrintView({
         <button type="button" className="btn-secondary" onClick={() => window.close()}>
           ปิด
         </button>
+        <Link href={`/documents/${documentId}`} className="btn-text">
+          กลับไปแก้ไข
+        </Link>
         <span className="self-center text-sm text-[var(--text-muted)]">{title}</span>
       </div>
 

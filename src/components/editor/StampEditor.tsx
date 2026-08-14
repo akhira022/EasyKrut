@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent, useMemo, useRef, useState, useTransition } from "react";
-import Link from "next/link";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Urgency } from "@/lib/documents/external/schema";
 import type { StampLetterPayload } from "@/lib/documents/stamp/schema";
@@ -12,6 +11,8 @@ import {
   overSoftLimit,
 } from "@/lib/documents/limits";
 import { StampLetterPreview } from "@/components/documents/StampLetterPreview";
+import { OfficialEditorFrame } from "@/components/editor/OfficialEditorFrame";
+import { useDocumentPersistence } from "@/components/editor/useDocumentPersistence";
 import { duplicateDocumentAction, saveStampDocumentAction } from "@/lib/actions/documents";
 
 type Props = {
@@ -20,18 +21,17 @@ type Props = {
   initialPayload: StampLetterPayload;
 };
 
-const AUTOSAVE_MS = 20_000;
-
 export function StampEditor({ documentId, initialStatus, initialPayload }: Props) {
   const router = useRouter();
   const [payload, setPayload] = useState<StampLetterPayload>(initialPayload);
   const [status, setStatus] = useState<"DRAFT" | "FINAL">(initialStatus);
-  const [message, setMessage] = useState<string | null>(null);
   const [zoomOpen, setZoomOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<"form" | "preview">("form");
   const [pending, startTransition] = useTransition();
-  const dirtyRef = useRef(false);
-  const savingRef = useRef(false);
+  const { persist, markDirty, persistStatus, message, messageTone, setMessage } =
+    useDocumentPersistence(() =>
+      saveStampDocumentAction({ id: documentId, status, payload }),
+    );
 
   const title = useMemo(() => {
     const first = (payload.paragraphs || [])
@@ -48,10 +48,6 @@ export function StampEditor({ documentId, initialStatus, initialPayload }: Props
     [payload.paragraphs],
   );
   const bodyOverBudget = bodyChars > DOC_SOFT_LIMITS.bodyTotal;
-
-  function markDirty() {
-    dirtyRef.current = true;
-  }
 
   function update<K extends keyof StampLetterPayload>(
     key: K,
@@ -86,143 +82,58 @@ export function StampEditor({ documentId, initialStatus, initialPayload }: Props
     markDirty();
   }
 
-  const persist = useEffectEvent(async (opts?: { silent?: boolean }) => {
-    if (savingRef.current) return false;
-    savingRef.current = true;
-    try {
-      const result = await saveStampDocumentAction({
-        id: documentId,
-        status,
-        payload,
-      });
-      if (!result.ok) {
-        if (!opts?.silent) setMessage(result.error ?? "บันทึกไม่สำเร็จ");
-        return false;
-      }
-      dirtyRef.current = false;
-      setMessage(opts?.silent ? "บันทึกอัตโนมัติแล้ว" : "บันทึกแล้ว");
-      return true;
-    } finally {
-      savingRef.current = false;
-    }
-  });
-
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      if (!dirtyRef.current) return;
-      void persist({ silent: true });
-    }, AUTOSAVE_MS);
-    return () => window.clearInterval(id);
-  }, [persist]);
-
-  function save() {
-    startTransition(async () => {
-      const ok = await persist();
-      if (ok) router.refresh();
-    });
-  }
-
-  function duplicate() {
-    startTransition(async () => {
-      await persist({ silent: true });
-      const result = await duplicateDocumentAction(documentId);
-      if (!result.ok || !result.documentId) {
-        setMessage(result.error ?? "คัดลอกไม่สำเร็จ");
-        return;
-      }
-      router.push(`/documents/${result.documentId}`);
-    });
-  }
-
-  async function exportWord() {
-    await persist({ silent: true });
-    window.location.href = `/api/export/docx?id=${documentId}`;
-  }
-
-  function exportPdf() {
-    startTransition(async () => {
-      await persist({ silent: true });
-      window.location.href = `/api/export/pdf?id=${documentId}`;
-    });
-  }
-
   return (
-    <div className="space-y-4">
-      <div className="no-print flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-sm text-[var(--text-muted)]">กำลังแก้ไข</p>
-          <h1 className="text-xl font-medium text-[var(--text-main)]">{title}</h1>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/documents" className="btn-text">
-            ประวัติเอกสาร
-          </Link>
-          <button type="button" className="btn-text" onClick={duplicate} disabled={pending}>
-            คัดลอก
-          </button>
-          <button type="button" className="btn-text" onClick={() => setZoomOpen(true)}>
-            ขยายพรีวิว
-          </button>
-          <button type="button" className="btn-secondary" onClick={exportPdf} disabled={pending}>
-            ดาวน์โหลด PDF
-          </button>
-          <button type="button" className="btn-secondary" onClick={exportWord} disabled={pending}>
-            Word
-          </button>
-          <button type="button" className="btn-primary" onClick={save} disabled={pending}>
-            {pending ? "กำลังบันทึก..." : "บันทึก"}
-          </button>
-        </div>
-      </div>
-
-      {message ? (
-        <p className="rounded-md bg-[#f3f1ff] px-3 py-2 text-sm text-[var(--primary-color)]">
-          {message}
-        </p>
-      ) : null}
-
-      <div className="mobile-editor-tabs">
-        <button
-          type="button"
-          className={mobileTab === "form" ? "active" : ""}
-          onClick={() => setMobileTab("form")}
-        >
-          ฟอร์ม
-        </button>
-        <button
-          type="button"
-          className={mobileTab === "preview" ? "active" : ""}
-          onClick={() => setMobileTab("preview")}
-        >
-          พรีวิว
-        </button>
-      </div>
-
-      <div className="flex flex-wrap gap-4 items-center">
-        <label className="text-sm flex items-center gap-2">
-          สถานะ
-          <select
-            className="field"
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value as "DRAFT" | "FINAL");
-              markDirty();
-            }}
-            style={{ width: "auto", marginBottom: 0 }}
-          >
-            <option value="DRAFT">ฉบับร่าง</option>
-            <option value="FINAL">สมบูรณ์</option>
-          </select>
-        </label>
-        <span className="text-sm text-[var(--text-muted)]">
-          ประเภท: หนังสือประทับตรา (แบบที่ 3)
-        </span>
-      </div>
-
-      <div className={`content-wrapper mobile-tab-${mobileTab}`}>
-        <section className="form-section editor-form-panel no-print">
-          <h2>กรอกข้อมูลหนังสือประทับตรา</h2>
-
+    <OfficialEditorFrame
+      title={title}
+      typeLabel="ประเภท: หนังสือประทับตรา (แบบที่ 3)"
+      formTitle="กรอกข้อมูลหนังสือประทับตรา"
+      message={message}
+      messageTone={messageTone}
+      persistStatus={persistStatus}
+      pending={pending}
+      status={status}
+      onStatus={(s) => {
+        setStatus(s);
+        markDirty();
+      }}
+      mobileTab={mobileTab}
+      setMobileTab={setMobileTab}
+      onSave={() =>
+        startTransition(async () => {
+          const ok = await persist();
+          if (ok) router.refresh();
+        })
+      }
+      onDuplicate={() =>
+        startTransition(async () => {
+          const ok = await persist({ silent: true });
+          if (!ok) return;
+          const result = await duplicateDocumentAction(documentId);
+          if (!result.ok || !result.documentId) {
+            setMessage(result.error ?? "คัดลอกไม่สำเร็จ");
+            return;
+          }
+          router.push(`/documents/${result.documentId}`);
+        })
+      }
+      onPdf={() =>
+        startTransition(async () => {
+          const ok = await persist({ silent: true });
+          if (!ok) return;
+          window.location.href = `/api/export/pdf?id=${documentId}`;
+        })
+      }
+      onWord={() =>
+        startTransition(async () => {
+          const ok = await persist({ silent: true });
+          if (!ok) return;
+          window.location.href = `/api/export/docx?id=${documentId}`;
+        })
+      }
+      zoomOpen={zoomOpen}
+      setZoomOpen={setZoomOpen}
+      form={
+        <>
           <div className="form-group">
             <label>ชั้นความเร็ว</label>
             <select
@@ -364,24 +275,10 @@ export function StampEditor({ documentId, initialStatus, initialPayload }: Props
               />
             </div>
           </div>
-        </section>
-
-        <aside className="preview-section editor-preview-panel">
-          <div className="preview-label">พรีวิวสด</div>
-          <div className="preview-frame">
-            <StampLetterPreview data={payload} />
-          </div>
-        </aside>
-      </div>
-
-      {zoomOpen ? (
-        <div className="zoom-modal" role="dialog">
-          <button type="button" className="zoom-close" onClick={() => setZoomOpen(false)}>
-            ปิด
-          </button>
-          <StampLetterPreview data={payload} printMode />
-        </div>
-      ) : null}
-    </div>
+        </>
+      }
+      preview={<StampLetterPreview data={payload} />}
+      zoomPreview={<StampLetterPreview data={payload} printMode />}
+    />
   );
 }

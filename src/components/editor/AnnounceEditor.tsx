@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent, useMemo, useRef, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Urgency } from "@/lib/documents/external/schema";
 import type { AnnounceLetterPayload } from "@/lib/documents/announce/schema";
@@ -12,6 +12,7 @@ import {
 } from "@/lib/documents/limits";
 import { AnnounceLetterPreview } from "@/components/documents/AnnounceLetterPreview";
 import { OfficialEditorFrame } from "@/components/editor/OfficialEditorFrame";
+import { useDocumentPersistence } from "@/components/editor/useDocumentPersistence";
 import { duplicateDocumentAction, saveAnnounceDocumentAction } from "@/lib/actions/documents";
 
 type Props = {
@@ -24,48 +25,21 @@ export function AnnounceEditor({ documentId, initialStatus, initialPayload }: Pr
   const router = useRouter();
   const [payload, setPayload] = useState(initialPayload);
   const [status, setStatus] = useState<"DRAFT" | "FINAL">(initialStatus);
-  const [message, setMessage] = useState<string | null>(null);
   const [zoomOpen, setZoomOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<"form" | "preview">("form");
   const [pending, startTransition] = useTransition();
-  const dirtyRef = useRef(false);
-  const savingRef = useRef(false);
+  const { persist, markDirty, persistStatus, message, messageTone, setMessage } =
+    useDocumentPersistence(() =>
+      saveAnnounceDocumentAction({ id: documentId, status, payload }),
+    );
 
   const title = useMemo(() => payload.subject.trim() || payload.kind, [payload.subject, payload.kind]);
   const bodyChars = useMemo(() => bodyTotalChars(payload.paragraphs), [payload.paragraphs]);
 
-  function markDirty() {
-    dirtyRef.current = true;
-  }
   function update<K extends keyof AnnounceLetterPayload>(key: K, value: AnnounceLetterPayload[K]) {
     setPayload((prev) => ({ ...prev, [key]: value }));
     markDirty();
   }
-
-  const persist = useEffectEvent(async (opts?: { silent?: boolean }) => {
-    if (savingRef.current) return false;
-    savingRef.current = true;
-    try {
-      const result = await saveAnnounceDocumentAction({ id: documentId, status, payload });
-      if (!result.ok) {
-        if (!opts?.silent) setMessage(result.error ?? "บันทึกไม่สำเร็จ");
-        return false;
-      }
-      dirtyRef.current = false;
-      setMessage(opts?.silent ? "บันทึกอัตโนมัติแล้ว" : "บันทึกแล้ว");
-      return true;
-    } finally {
-      savingRef.current = false;
-    }
-  });
-
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      if (!dirtyRef.current) return;
-      void persist({ silent: true });
-    }, 20_000);
-    return () => window.clearInterval(id);
-  }, [persist]);
 
   const form = (
     <>
@@ -122,7 +96,15 @@ export function AnnounceEditor({ documentId, initialStatus, initialPayload }: Pr
               }}
             />
             {i > 0 ? (
-              <button type="button" className="btn-text" onClick={() => update("paragraphs", payload.paragraphs.filter((_, j) => j !== i))}>
+              <button
+                type="button"
+                className="btn-text"
+                onClick={() => {
+                  const ok = window.confirm(`ต้องการลบย่อหน้า ${i + 1} หรือไม่?`);
+                  if (!ok) return;
+                  update("paragraphs", payload.paragraphs.filter((_, j) => j !== i));
+                }}
+              >
                 ลบย่อหน้า
               </button>
             ) : null}
@@ -151,6 +133,8 @@ export function AnnounceEditor({ documentId, initialStatus, initialPayload }: Pr
       typeLabel={`ประเภท: ${payload.kind} (แบบที่ 7)`}
       formTitle={`กรอกข้อมูล${payload.kind}`}
       message={message}
+      messageTone={messageTone}
+      persistStatus={persistStatus}
       pending={pending}
       status={status}
       onStatus={(s) => {
@@ -167,7 +151,8 @@ export function AnnounceEditor({ documentId, initialStatus, initialPayload }: Pr
       }
       onDuplicate={() =>
         startTransition(async () => {
-          await persist({ silent: true });
+          const ok = await persist({ silent: true });
+          if (!ok) return;
           const result = await duplicateDocumentAction(documentId);
           if (!result.ok || !result.documentId) {
             setMessage(result.error ?? "คัดลอกไม่สำเร็จ");
@@ -178,14 +163,18 @@ export function AnnounceEditor({ documentId, initialStatus, initialPayload }: Pr
       }
       onPdf={() =>
         startTransition(async () => {
-          await persist({ silent: true });
+          const ok = await persist({ silent: true });
+          if (!ok) return;
           window.location.href = `/api/export/pdf?id=${documentId}`;
         })
       }
-      onWord={async () => {
-        await persist({ silent: true });
-        window.location.href = `/api/export/docx?id=${documentId}`;
-      }}
+      onWord={() =>
+        startTransition(async () => {
+          const ok = await persist({ silent: true });
+          if (!ok) return;
+          window.location.href = `/api/export/docx?id=${documentId}`;
+        })
+      }
       zoomOpen={zoomOpen}
       setZoomOpen={setZoomOpen}
       form={form}

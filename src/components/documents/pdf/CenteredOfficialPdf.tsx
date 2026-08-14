@@ -15,6 +15,7 @@ const styles = StyleSheet.create({
     paddingBottom: cm(2),
     paddingLeft: cm(3),
   },
+  pageOfficial: { paddingTop: cm(1.5) },
   urgency: {
     color: "#c00",
     fontWeight: 700,
@@ -26,6 +27,14 @@ const styles = StyleSheet.create({
   heading: { textAlign: "center", fontSize: 18, marginBottom: 6 },
   center: { textAlign: "center", marginTop: 4 },
   meta: { flexDirection: "row", marginTop: 6, justifyContent: "center" },
+  metaLeft: { justifyContent: "flex-start" },
+  /** เส้นคั่นใต้ «เรื่อง» ก่อนเข้าเนื้อหา */
+  metaSeparator: {
+    borderBottomWidth: 1.5,
+    borderBottomColor: "#000",
+    paddingBottom: 2,
+    marginBottom: 6,
+  },
   metaLabel: { marginRight: 8 },
   body: { marginTop: 8 },
   paragraph: {
@@ -33,13 +42,30 @@ const styles = StyleSheet.create({
     textIndent: cm(2.5),
     marginBottom: 6,
   },
+  effective: {
+    textAlign: "justify",
+    textIndent: cm(2.5),
+    marginTop: 6,
+  },
   signBlock: {
     marginLeft: "50%",
     width: "50%",
     marginTop: 16,
     alignItems: "center",
   },
+  signBlockCenter: {
+    marginLeft: 0,
+    width: "100%",
+    marginTop: 0,
+    alignItems: "center",
+  },
+  officialDate: {
+    textAlign: "center",
+    marginTop: 12,
+  },
   signSpace: { height: cm(2.5) },
+  /** 4 Enter ที่ 16pt */
+  signSpaceOfficial: { height: 64 },
   signName: { textAlign: "center" },
 });
 
@@ -54,6 +80,11 @@ export type CenteredOfficialPdfProps = {
   date: string;
   signName: string;
   position: string;
+  effectiveFrom?: string;
+  /** เส้นคั่นใต้ «เรื่อง» ก่อนเข้าเนื้อหา */
+  separator?: boolean;
+  /** รูปแบบเฉพาะตามแบบราชการ */
+  variant?: "announce" | "order";
   garudaSrc?: string | Buffer;
 };
 
@@ -68,13 +99,21 @@ export function CenteredOfficialPdf({
   date,
   signName,
   position,
+  effectiveFrom,
+  separator,
+  variant,
   garudaSrc = "/krut.png",
 }: CenteredOfficialPdfProps) {
+  const announce = variant === "announce";
+  const officialCenter = announce || variant === "order";
   const headingText = insertThaiWordBreaks(toThaiNumber(heading));
   const num = toThaiNumber(docNum ?? "");
   const subjectText = insertThaiWordBreaks(toThaiNumber(subject));
-  const dateText = getThaiDate(date);
+  const dateText = getThaiDate(date, { era: officialCenter });
   const sign = toThaiNumber(signName);
+  const effective = insertThaiWordBreaks(
+    toThaiNumber(effectiveFrom).replace(/\s+/g, " ").trim(),
+  );
   const posLines = toThaiNumber(position)
     .split(/\r?\n/)
     .map((l) => l.trim())
@@ -87,7 +126,11 @@ export function CenteredOfficialPdf({
 
   return (
     <Document title={title} author="EasyKrut">
-      <Page size="A4" style={styles.page} wrap>
+      <Page
+        size="A4"
+        style={officialCenter ? [styles.page, styles.pageOfficial] : styles.page}
+        wrap
+      >
         {urgency ? <Text style={styles.urgency}>{urgency}</Text> : null}
         <View style={styles.garudaWrap}>
           {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image */}
@@ -95,7 +138,13 @@ export function CenteredOfficialPdf({
         </View>
         <Text style={styles.heading}>{headingText}</Text>
         {docNum !== undefined ? <Text style={styles.center}>ที่ {num}</Text> : null}
-        <View style={styles.meta}>
+        <View
+          style={[
+            styles.meta,
+            ...(announce ? [styles.metaLeft] : []),
+            ...(separator ? [styles.metaSeparator] : []),
+          ]}
+        >
           <Text style={styles.metaLabel}>เรื่อง</Text>
           <Text>{subjectText}</Text>
         </View>
@@ -106,13 +155,21 @@ export function CenteredOfficialPdf({
             </Text>
           ))}
         </View>
-        <View style={styles.signBlock} wrap={false}>
-          {dateText ? (
+        {variant === "order" && effective ? (
+          <Text style={styles.effective}>ทั้งนี้ ตั้งแต่ {effective}</Text>
+        ) : null}
+        {officialCenter && dateText ? (
+          <Text style={styles.officialDate}>
+            {dateLabel} {dateText}
+          </Text>
+        ) : null}
+        <View style={officialCenter ? styles.signBlockCenter : styles.signBlock} wrap={false}>
+          {!officialCenter && dateText ? (
             <Text style={styles.center}>
               {dateLabel} {dateText}
             </Text>
           ) : null}
-          <View style={styles.signSpace} />
+          <View style={officialCenter ? styles.signSpaceOfficial : styles.signSpace} />
           {sign ? <Text style={styles.signName}>({sign})</Text> : null}
           {posLines.map((line, i) => (
             <Text key={i} style={styles.signName}>

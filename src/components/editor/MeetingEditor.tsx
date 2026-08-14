@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useEffectEvent, useMemo, useRef, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { MeetingLetterPayload } from "@/lib/documents/meeting/schema";
 import { MeetingLetterPreview } from "@/components/documents/MeetingLetterPreview";
 import { OfficialEditorFrame } from "@/components/editor/OfficialEditorFrame";
+import { useDocumentPersistence } from "@/components/editor/useDocumentPersistence";
 import { duplicateDocumentAction, saveMeetingDocumentAction } from "@/lib/actions/documents";
 
 type Props = {
@@ -33,7 +34,15 @@ function listField(
             }}
           />
           {items.length > 1 ? (
-            <button type="button" className="btn-text" onClick={() => onChange(items.filter((_, j) => j !== i))}>
+            <button
+              type="button"
+              className="btn-text"
+              onClick={() => {
+                const ok = window.confirm("ต้องการลบรายการนี้หรือไม่?");
+                if (!ok) return;
+                onChange(items.filter((_, j) => j !== i));
+              }}
+            >
               ลบ
             </button>
           ) : null}
@@ -50,12 +59,13 @@ export function MeetingEditor({ documentId, initialStatus, initialPayload }: Pro
   const router = useRouter();
   const [payload, setPayload] = useState(initialPayload);
   const [status, setStatus] = useState<"DRAFT" | "FINAL">(initialStatus);
-  const [message, setMessage] = useState<string | null>(null);
   const [zoomOpen, setZoomOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<"form" | "preview">("form");
   const [pending, startTransition] = useTransition();
-  const dirtyRef = useRef(false);
-  const savingRef = useRef(false);
+  const { persist, markDirty, persistStatus, message, messageTone, setMessage } =
+    useDocumentPersistence(() =>
+      saveMeetingDocumentAction({ id: documentId, status, payload }),
+    );
 
   const title = useMemo(() => {
     const c = payload.committee.trim();
@@ -65,38 +75,10 @@ export function MeetingEditor({ documentId, initialStatus, initialPayload }: Pro
     return "รายงานการประชุม";
   }, [payload.committee, payload.session]);
 
-  function markDirty() {
-    dirtyRef.current = true;
-  }
   function update<K extends keyof MeetingLetterPayload>(key: K, value: MeetingLetterPayload[K]) {
     setPayload((prev) => ({ ...prev, [key]: value }));
     markDirty();
   }
-
-  const persist = useEffectEvent(async (opts?: { silent?: boolean }) => {
-    if (savingRef.current) return false;
-    savingRef.current = true;
-    try {
-      const result = await saveMeetingDocumentAction({ id: documentId, status, payload });
-      if (!result.ok) {
-        if (!opts?.silent) setMessage(result.error ?? "บันทึกไม่สำเร็จ");
-        return false;
-      }
-      dirtyRef.current = false;
-      setMessage(opts?.silent ? "บันทึกอัตโนมัติแล้ว" : "บันทึกแล้ว");
-      return true;
-    } finally {
-      savingRef.current = false;
-    }
-  });
-
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      if (!dirtyRef.current) return;
-      void persist({ silent: true });
-    }, 20_000);
-    return () => window.clearInterval(id);
-  }, [persist]);
 
   const form = (
     <>
@@ -171,7 +153,15 @@ export function MeetingEditor({ documentId, initialStatus, initialPayload }: Pro
               }}
             />
             {i > 0 ? (
-              <button type="button" className="btn-text" onClick={() => update("agendas", payload.agendas.filter((_, j) => j !== i))}>
+              <button
+                type="button"
+                className="btn-text"
+                onClick={() => {
+                  const ok = window.confirm(`ต้องการลบวาระ ${i + 1} หรือไม่?`);
+                  if (!ok) return;
+                  update("agendas", payload.agendas.filter((_, j) => j !== i));
+                }}
+              >
                 ลบวาระ
               </button>
             ) : null}
@@ -198,6 +188,8 @@ export function MeetingEditor({ documentId, initialStatus, initialPayload }: Pro
       typeLabel="ประเภท: รายงานการประชุม (แบบที่ 11)"
       formTitle="กรอกข้อมูลรายงานการประชุม"
       message={message}
+      messageTone={messageTone}
+      persistStatus={persistStatus}
       pending={pending}
       status={status}
       onStatus={(s) => {
@@ -214,7 +206,8 @@ export function MeetingEditor({ documentId, initialStatus, initialPayload }: Pro
       }
       onDuplicate={() =>
         startTransition(async () => {
-          await persist({ silent: true });
+          const ok = await persist({ silent: true });
+          if (!ok) return;
           const result = await duplicateDocumentAction(documentId);
           if (!result.ok || !result.documentId) {
             setMessage(result.error ?? "คัดลอกไม่สำเร็จ");
@@ -225,14 +218,18 @@ export function MeetingEditor({ documentId, initialStatus, initialPayload }: Pro
       }
       onPdf={() =>
         startTransition(async () => {
-          await persist({ silent: true });
+          const ok = await persist({ silent: true });
+          if (!ok) return;
           window.location.href = `/api/export/pdf?id=${documentId}`;
         })
       }
-      onWord={async () => {
-        await persist({ silent: true });
-        window.location.href = `/api/export/docx?id=${documentId}`;
-      }}
+      onWord={() =>
+        startTransition(async () => {
+          const ok = await persist({ silent: true });
+          if (!ok) return;
+          window.location.href = `/api/export/docx?id=${documentId}`;
+        })
+      }
       zoomOpen={zoomOpen}
       setZoomOpen={setZoomOpen}
       form={form}

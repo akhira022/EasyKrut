@@ -10,6 +10,11 @@ type Props = {
   date: string;
   signName: string;
   position: string;
+  effectiveFrom?: string;
+  /** เส้นคั่นใต้ «เรื่อง» ก่อนเข้าเนื้อหา */
+  separator?: boolean;
+  /** รูปแบบเฉพาะตามแบบราชการ — ขอบบน 1.5 ซม. และลายเซ็นกึ่งกลาง */
+  variant?: "announce" | "order";
   className?: string;
   printMode?: boolean;
 };
@@ -24,22 +29,28 @@ export function CenteredOfficialPreview({
   date,
   signName,
   position,
+  effectiveFrom,
+  separator,
+  variant,
   className = "",
   printMode,
 }: Props) {
+  const announce = variant === "announce";
+  const officialCenter = announce || variant === "order";
   const headingText = toThaiNumber(heading);
   const num = toThaiNumber(docNum ?? "");
   const subjectText = toThaiNumber(subject);
-  const dateText = getThaiDate(date);
+  const dateText = getThaiDate(date, { era: officialCenter });
   const sign = toThaiNumber(signName);
   const pos = toThaiNumber(position);
+  const effective = toThaiNumber(effectiveFrom).replace(/\s+/g, " ").trim();
   const paras = (paragraphs || [])
     .map((p) => toThaiNumber(p).replace(/\s+/g, " ").trim())
     .filter((p) => p !== "");
 
   return (
     <article
-      className={`doc-a4 doc-official-center font-sarabun text-black pt-[2.5cm] pr-[2cm] pb-[2cm] pl-[3cm] ${printMode ? "doc-a4-print" : "doc-a4-preview"} ${className}`}
+      className={`doc-a4 doc-official-center font-sarabun text-black pt-[2.5cm] pr-[2cm] pb-[2cm] pl-[3cm] ${variant ? `doc-${variant}` : ""} ${printMode ? "doc-a4-print" : "doc-a4-preview"} ${className}`}
     >
       {urgency ? <div className="doc-urgency">{urgency}</div> : null}
       <div className="doc-official-garuda">
@@ -50,7 +61,9 @@ export function CenteredOfficialPreview({
       {docNum !== undefined ? (
         <div className="doc-official-line text-center mt-[6pt]">ที่ {num}</div>
       ) : null}
-      <div className="doc-meta mt-[6pt] justify-center">
+      <div
+        className={`doc-meta mt-[6pt]${announce ? "" : " justify-center"}${separator ? " doc-heading-separator" : ""}`}
+      >
         <span className="doc-meta-label">เรื่อง</span>
         <span className="doc-meta-value">{subjectText}</span>
       </div>
@@ -61,8 +74,16 @@ export function CenteredOfficialPreview({
           </div>
         ))}
       </div>
+      {variant === "order" && effective ? (
+        <p className="doc-order-effective doc-paragraph">ทั้งนี้ ตั้งแต่ {effective}</p>
+      ) : null}
+      {officialCenter && dateText ? (
+        <div className="doc-official-date">
+          {dateLabel} {dateText}
+        </div>
+      ) : null}
       <div className="doc-stamp-block">
-        {dateText ? (
+        {!officialCenter && dateText ? (
           <div className="text-center">
             {dateLabel} {dateText}
           </div>
