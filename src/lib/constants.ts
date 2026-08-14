@@ -10,9 +10,10 @@ export const DocumentType = {
   EXTERNAL: "EXTERNAL",
   INTERNAL: "INTERNAL",
   STAMP: "STAMP",
-  MEETING: "MEETING",
   ORDER: "ORDER",
+  ANNOUNCE: "ANNOUNCE",
   CERT: "CERT",
+  MEETING: "MEETING",
 } as const;
 export type DocumentType = (typeof DocumentType)[keyof typeof DocumentType];
 

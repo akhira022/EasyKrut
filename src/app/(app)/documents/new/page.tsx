@@ -1,45 +1,104 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
+  createAnnounceDocumentAction,
+  createCertDocumentAction,
   createExternalDocumentAction,
   createInternalDocumentAction,
+  createMeetingDocumentAction,
+  createOrderDocumentAction,
   createStampDocumentAction,
 } from "@/lib/actions/documents";
 import { canCreateDocument, getPlan } from "@/lib/entitlements";
 import { requireOrgContext } from "@/lib/org-context";
 
+async function createAndRedirect(
+  create: () => Promise<{ ok: boolean; documentId?: string; error?: string }>,
+) {
+  const result = await create();
+  if (result.ok && result.documentId) {
+    redirect(`/documents/${result.documentId}`);
+  }
+  redirect(`/documents/new?error=${encodeURIComponent(result.error ?? "สร้างไม่สำเร็จ")}`);
+}
+
 async function createExternalDoc() {
   "use server";
-  const result = await createExternalDocumentAction();
-  if (result.ok && result.documentId) {
-    redirect(`/documents/${result.documentId}`);
-  }
-  redirect(`/documents/new?error=${encodeURIComponent(result.error ?? "สร้างไม่สำเร็จ")}`);
+  await createAndRedirect(createExternalDocumentAction);
 }
-
 async function createInternalDoc() {
   "use server";
-  const result = await createInternalDocumentAction();
-  if (result.ok && result.documentId) {
-    redirect(`/documents/${result.documentId}`);
-  }
-  redirect(`/documents/new?error=${encodeURIComponent(result.error ?? "สร้างไม่สำเร็จ")}`);
+  await createAndRedirect(createInternalDocumentAction);
 }
-
 async function createStampDoc() {
   "use server";
-  const result = await createStampDocumentAction();
-  if (result.ok && result.documentId) {
-    redirect(`/documents/${result.documentId}`);
-  }
-  redirect(`/documents/new?error=${encodeURIComponent(result.error ?? "สร้างไม่สำเร็จ")}`);
+  await createAndRedirect(createStampDocumentAction);
+}
+async function createOrderDoc() {
+  "use server";
+  await createAndRedirect(createOrderDocumentAction);
+}
+async function createAnnounceDoc() {
+  "use server";
+  await createAndRedirect(createAnnounceDocumentAction);
+}
+async function createCertDoc() {
+  "use server";
+  await createAndRedirect(createCertDocumentAction);
+}
+async function createMeetingDoc() {
+  "use server";
+  await createAndRedirect(createMeetingDocumentAction);
 }
 
+const READY = [
+  {
+    form: createExternalDoc,
+    formId: "1",
+    title: "หนังสือภายนอก",
+    note: "กระดาษตราครุฑ สำหรับติดต่อหน่วยงานภายนอก พร้อมเลขไทยและวันที่ พ.ศ.",
+  },
+  {
+    form: createInternalDoc,
+    formId: "2",
+    title: "หนังสือภายใน",
+    note: "บันทึกข้อความสำหรับติดต่อภายในหน่วยงาน",
+  },
+  {
+    form: createStampDoc,
+    formId: "3",
+    title: "หนังสือประทับตรา",
+    note: "กระดาษตราครุฑ · ประทับตราแทนการลงชื่อ สำหรับเรื่องที่ไม่ใช่ราชการสำคัญ",
+  },
+  {
+    form: createOrderDoc,
+    formId: "4",
+    title: "คำสั่ง",
+    note: "หนังสือสั่งการ · ผู้บังคับบัญชาสั่งให้ปฏิบัติ",
+  },
+  {
+    form: createAnnounceDoc,
+    formId: "7",
+    title: "ประกาศ",
+    note: "หนังสือประชาสัมพันธ์ · ชี้แจงหรือแนะแนวทางปฏิบัติ (รองรับแจ้งความ)",
+  },
+  {
+    form: createCertDoc,
+    formId: "10",
+    title: "หนังสือรับรอง",
+    note: "หลักฐานในราชการ · รับรองบุคคล นิติบุคคล หรือหน่วยงาน",
+  },
+  {
+    form: createMeetingDoc,
+    formId: "11",
+    title: "รายงานการประชุม",
+    note: "บันทึกผู้มาประชุม ความเห็น และมติ · ไม่ใช้ตราครุฑ",
+  },
+] as const;
+
 const COMING_SOON = [
-  { title: "หนังสือสั่งการ", note: "คำสั่ง / ระเบียบ / ข้อบังคับ" },
-  { title: "หนังสือประชาสัมพันธ์", note: "ประกาศ / แถลงการณ์ / ข่าว" },
-  { title: "หนังสือรับรอง", note: "หลักฐานในราชการ · แบบที่ 10" },
-  { title: "รายงานการประชุม", note: "หลักฐานในราชการ · แบบที่ 11" },
+  { title: "ระเบียบ / ข้อบังคับ", note: "หนังสือสั่งการ · แบบที่ 5–6" },
+  { title: "แถลงการณ์ / ข่าว", note: "หนังสือประชาสัมพันธ์ · แบบที่ 8–9" },
 ] as const;
 
 export default async function NewDocumentPage({
@@ -103,53 +162,21 @@ export default async function NewDocumentPage({
       <section className="space-y-3">
         <h2 className="font-medium">พร้อมใช้งาน</h2>
         <div className="grid gap-3 sm:grid-cols-2">
-          <form action={createExternalDoc}>
-            <button
-              type="submit"
-              disabled={!gate.ok}
-              className="w-full h-full text-left rounded-xl border border-[var(--border-color)] bg-white p-5 hover:border-[var(--primary-color)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <div className="text-xs uppercase tracking-wide text-[var(--primary-color)] mb-2">
-                แบบที่ 1
-              </div>
-              <div className="font-medium text-lg">หนังสือภายนอก</div>
-              <p className="text-sm text-[var(--text-muted)] mt-2">
-                กระดาษตราครุฑ สำหรับติดต่อหน่วยงานภายนอก พร้อมเลขไทยและวันที่ พ.ศ.
-              </p>
-            </button>
-          </form>
-
-          <form action={createInternalDoc}>
-            <button
-              type="submit"
-              disabled={!gate.ok}
-              className="w-full h-full text-left rounded-xl border border-[var(--border-color)] bg-white p-5 hover:border-[var(--primary-color)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <div className="text-xs uppercase tracking-wide text-[var(--primary-color)] mb-2">
-                แบบที่ 2
-              </div>
-              <div className="font-medium text-lg">หนังสือภายใน</div>
-              <p className="text-sm text-[var(--text-muted)] mt-2">
-                บันทึกข้อความสำหรับติดต่อภายในหน่วยงาน
-              </p>
-            </button>
-          </form>
-
-          <form action={createStampDoc}>
-            <button
-              type="submit"
-              disabled={!gate.ok}
-              className="w-full h-full text-left rounded-xl border border-[var(--border-color)] bg-white p-5 hover:border-[var(--primary-color)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <div className="text-xs uppercase tracking-wide text-[var(--primary-color)] mb-2">
-                แบบที่ 3
-              </div>
-              <div className="font-medium text-lg">หนังสือประทับตรา</div>
-              <p className="text-sm text-[var(--text-muted)] mt-2">
-                กระดาษตราครุฑ · ประทับตราแทนการลงชื่อ สำหรับเรื่องที่ไม่ใช่ราชการสำคัญ
-              </p>
-            </button>
-          </form>
+          {READY.map((item) => (
+            <form action={item.form} key={item.formId}>
+              <button
+                type="submit"
+                disabled={!gate.ok}
+                className="w-full h-full text-left rounded-xl border border-[var(--border-color)] bg-white p-5 hover:border-[var(--primary-color)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="text-xs uppercase tracking-wide text-[var(--primary-color)] mb-2">
+                  แบบที่ {item.formId}
+                </div>
+                <div className="font-medium text-lg">{item.title}</div>
+                <p className="text-sm text-[var(--text-muted)] mt-2">{item.note}</p>
+              </button>
+            </form>
+          ))}
         </div>
       </section>
 

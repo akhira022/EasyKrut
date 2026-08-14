@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { buildExternalPdf, buildInternalPdf, buildStampPdf } from "@/lib/documents/build-pdf";
+import {
+  buildAnnouncePdf,
+  buildCertPdf,
+  buildExternalPdf,
+  buildInternalPdf,
+  buildMeetingPdf,
+  buildOrderPdf,
+  buildStampPdf,
+} from "@/lib/documents/build-pdf";
 import { DocumentType } from "@/lib/constants";
 import {
+  parseAnnouncePayload,
+  parseCertPayload,
   parseExternalPayload,
   parseInternalPayload,
+  parseMeetingPayload,
+  parseOrderPayload,
   parseStampPayload,
 } from "@/lib/documents/payload";
 import { canExportPdf } from "@/lib/entitlements";
@@ -14,45 +26,45 @@ import { currentYearMonth } from "@/lib/thai";
 export async function GET(req: NextRequest) {
   try {
     const id = req.nextUrl.searchParams.get("id");
-    if (!id) {
-      return NextResponse.json({ error: "missing id" }, { status: 400 });
-    }
+    if (!id) return NextResponse.json({ error: "missing id" }, { status: 400 });
 
     const ctx = await requireOrgContext();
     const gate = canExportPdf({ planKey: ctx.organization.planKey });
-    if (!gate.ok) {
-      return NextResponse.json({ error: gate.reason }, { status: 403 });
-    }
+    if (!gate.ok) return NextResponse.json({ error: gate.reason }, { status: 403 });
 
     const doc = await prisma.document.findFirst({
       where: { id, organizationId: ctx.organization.id },
     });
-    if (!doc) {
-      return NextResponse.json({ error: "not found" }, { status: 404 });
-    }
+    if (!doc) return NextResponse.json({ error: "not found" }, { status: 404 });
 
     let buffer: Buffer;
-    if (doc.type === DocumentType.INTERNAL) {
-      buffer = await buildInternalPdf(parseInternalPayload(doc.payload));
-    } else if (doc.type === DocumentType.STAMP) {
-      buffer = await buildStampPdf(parseStampPayload(doc.payload));
-    } else {
-      buffer = await buildExternalPdf(parseExternalPayload(doc.payload));
+    switch (doc.type) {
+      case DocumentType.INTERNAL:
+        buffer = await buildInternalPdf(parseInternalPayload(doc.payload));
+        break;
+      case DocumentType.STAMP:
+        buffer = await buildStampPdf(parseStampPayload(doc.payload));
+        break;
+      case DocumentType.ORDER:
+        buffer = await buildOrderPdf(parseOrderPayload(doc.payload));
+        break;
+      case DocumentType.ANNOUNCE:
+        buffer = await buildAnnouncePdf(parseAnnouncePayload(doc.payload));
+        break;
+      case DocumentType.CERT:
+        buffer = await buildCertPdf(parseCertPayload(doc.payload));
+        break;
+      case DocumentType.MEETING:
+        buffer = await buildMeetingPdf(parseMeetingPayload(doc.payload));
+        break;
+      default:
+        buffer = await buildExternalPdf(parseExternalPayload(doc.payload));
     }
 
     const yearMonth = currentYearMonth();
     await prisma.usageMeter.upsert({
-      where: {
-        organizationId_yearMonth: {
-          organizationId: ctx.organization.id,
-          yearMonth,
-        },
-      },
-      create: {
-        organizationId: ctx.organization.id,
-        yearMonth,
-        exportsCount: 1,
-      },
+      where: { organizationId_yearMonth: { organizationId: ctx.organization.id, yearMonth } },
+      create: { organizationId: ctx.organization.id, yearMonth, exportsCount: 1 },
       update: { exportsCount: { increment: 1 } },
     });
 
@@ -70,9 +82,6 @@ export async function GET(req: NextRequest) {
     if (msg === "UNAUTHORIZED") {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
-    return NextResponse.json(
-      { error: "export failed", detail: msg },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "export failed", detail: msg }, { status: 500 });
   }
 }

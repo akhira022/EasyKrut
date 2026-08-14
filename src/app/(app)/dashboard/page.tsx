@@ -106,7 +106,7 @@ export default async function DashboardPage() {
               <div>
                 <p className="font-medium text-sm">เลือกประเภทแล้วสร้างหนังสือ</p>
                 <p className="text-sm text-[var(--text-muted)]">
-                  หนังสือภายนอก · ภายใน (บันทึกข้อความ) · ประทับตรา
+                  ภายนอก · ภายใน · ประทับตรา · คำสั่ง · ประกาศ · รับรอง · รายงานการประชุม
                 </p>
                 <Link
                   href="/documents/new"
