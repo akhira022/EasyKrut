@@ -1,6 +1,10 @@
 import { notFound } from "next/navigation";
 import { DocumentType } from "@/lib/constants";
-import { parseExternalPayload, parseInternalPayload } from "@/lib/documents/payload";
+import {
+  parseExternalPayload,
+  parseInternalPayload,
+  parseStampPayload,
+} from "@/lib/documents/payload";
 import { canExportPdf } from "@/lib/entitlements";
 import { prisma } from "@/lib/db";
 import { requireOrgContext } from "@/lib/org-context";
@@ -35,8 +39,11 @@ export default async function PrintPage({
       internalData={
         doc.type === DocumentType.INTERNAL ? parseInternalPayload(doc.payload) : undefined
       }
+      stampData={
+        doc.type === DocumentType.STAMP ? parseStampPayload(doc.payload) : undefined
+      }
       externalData={
-        doc.type !== DocumentType.INTERNAL ? parseExternalPayload(doc.payload) : undefined
+        doc.type === DocumentType.EXTERNAL ? parseExternalPayload(doc.payload) : undefined
       }
     />
   );

@@ -9,6 +9,7 @@ export type MembershipRole = (typeof MembershipRole)[keyof typeof MembershipRole
 export const DocumentType = {
   EXTERNAL: "EXTERNAL",
   INTERNAL: "INTERNAL",
+  STAMP: "STAMP",
   MEETING: "MEETING",
   ORDER: "ORDER",
   CERT: "CERT",

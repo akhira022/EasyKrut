@@ -102,7 +102,7 @@ model Document {
   id             String   @id @default(cuid())
   organizationId String
   createdById    String
-  type           String // EXTERNAL | INTERNAL | MEETING | ORDER | CERT
+  type           String // EXTERNAL | INTERNAL | STAMP | MEETING | ORDER | CERT
   title          String
   status         String   @default("DRAFT") // DRAFT | FINAL
   payload        String // JSON string

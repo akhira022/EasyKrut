@@ -2,9 +2,11 @@
 
 import { ExternalLetterPreview } from "@/components/documents/ExternalLetterPreview";
 import { InternalLetterPreview } from "@/components/documents/InternalLetterPreview";
+import { StampLetterPreview } from "@/components/documents/StampLetterPreview";
 import { DocumentType } from "@/lib/constants";
 import type { ExternalLetterPayload } from "@/lib/documents/external/schema";
 import type { InternalLetterPayload } from "@/lib/documents/internal/schema";
+import type { StampLetterPayload } from "@/lib/documents/stamp/schema";
 
 type Props = {
   documentId: string;
@@ -12,6 +14,7 @@ type Props = {
   type: string;
   externalData?: ExternalLetterPayload;
   internalData?: InternalLetterPayload;
+  stampData?: StampLetterPayload;
 };
 
 export function PrintView({
@@ -20,6 +23,7 @@ export function PrintView({
   type,
   externalData,
   internalData,
+  stampData,
 }: Props) {
   function downloadPdf() {
     window.location.href = `/api/export/pdf?id=${documentId}`;
@@ -41,7 +45,10 @@ export function PrintView({
         {type === DocumentType.INTERNAL && internalData ? (
           <InternalLetterPreview data={internalData} printMode />
         ) : null}
-        {type !== DocumentType.INTERNAL && externalData ? (
+        {type === DocumentType.STAMP && stampData ? (
+          <StampLetterPreview data={stampData} printMode />
+        ) : null}
+        {type === DocumentType.EXTERNAL && externalData ? (
           <ExternalLetterPreview data={externalData} printMode />
         ) : null}
       </div>

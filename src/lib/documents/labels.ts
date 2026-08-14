@@ -6,6 +6,8 @@ export function documentTypeLabel(type: string): string {
       return "ภายนอก";
     case DocumentType.INTERNAL:
       return "ภายใน";
+    case DocumentType.STAMP:
+      return "ประทับตรา";
     case DocumentType.MEETING:
       return "ประชุม";
     case DocumentType.ORDER:

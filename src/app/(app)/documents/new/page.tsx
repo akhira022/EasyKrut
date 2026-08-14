@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import {
   createExternalDocumentAction,
   createInternalDocumentAction,
+  createStampDocumentAction,
 } from "@/lib/actions/documents";
 import { canCreateDocument, getPlan } from "@/lib/entitlements";
 import { requireOrgContext } from "@/lib/org-context";
@@ -25,8 +26,16 @@ async function createInternalDoc() {
   redirect(`/documents/new?error=${encodeURIComponent(result.error ?? "สร้างไม่สำเร็จ")}`);
 }
 
+async function createStampDoc() {
+  "use server";
+  const result = await createStampDocumentAction();
+  if (result.ok && result.documentId) {
+    redirect(`/documents/${result.documentId}`);
+  }
+  redirect(`/documents/new?error=${encodeURIComponent(result.error ?? "สร้างไม่สำเร็จ")}`);
+}
+
 const COMING_SOON = [
-  { title: "หนังสือประทับตรา", note: "แบบที่ 3" },
   { title: "หนังสือสั่งการ", note: "คำสั่ง / ระเบียบ / ข้อบังคับ" },
   { title: "หนังสือประชาสัมพันธ์", note: "ประกาศ / แถลงการณ์ / ข่าว" },
   { title: "หลักฐานในราชการ", note: "รับรอง / รายงานประชุม" },
@@ -121,6 +130,22 @@ export default async function NewDocumentPage({
               <div className="font-medium text-lg">หนังสือภายใน</div>
               <p className="text-sm text-[var(--text-muted)] mt-2">
                 บันทึกข้อความสำหรับติดต่อภายในหน่วยงาน
+              </p>
+            </button>
+          </form>
+
+          <form action={createStampDoc}>
+            <button
+              type="submit"
+              disabled={!gate.ok}
+              className="w-full h-full text-left rounded-xl border border-[var(--border-color)] bg-white p-5 hover:border-[var(--primary-color)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div className="text-xs uppercase tracking-wide text-[var(--primary-color)] mb-2">
+                แบบที่ 3
+              </div>
+              <div className="font-medium text-lg">หนังสือประทับตรา</div>
+              <p className="text-sm text-[var(--text-muted)] mt-2">
+                กระดาษตราครุฑ · ประทับตราแทนการลงชื่อ สำหรับเรื่องที่ไม่ใช่ราชการสำคัญ
               </p>
             </button>
           </form>

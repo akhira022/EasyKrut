@@ -10,6 +10,11 @@ import {
   emptyInternalLetter,
   internalLetterSchema,
 } from "@/lib/documents/internal/schema";
+import {
+  emptyStampLetter,
+  stampDocumentTitle,
+  stampLetterSchema,
+} from "@/lib/documents/stamp/schema";
 import { stringifyPayload } from "@/lib/documents/payload";
 import { DocumentStatus, DocumentType } from "@/lib/constants";
 import { canCreateDocument } from "@/lib/entitlements";
@@ -138,6 +143,59 @@ export async function createInternalDocumentAction(): Promise<DocActionResult> {
   }
 }
 
+export async function createStampDocumentAction(): Promise<DocActionResult> {
+  try {
+    const ctx = await requireOrgContext();
+    const gate = canCreateDocument({
+      planKey: ctx.organization.planKey,
+      seatLimit: ctx.organization.seatLimit,
+      docLimitMonthly: ctx.organization.docLimitMonthly,
+      memberCount: ctx.memberCount,
+      docsCreatedThisMonth: ctx.docsCreatedThisMonth,
+    });
+    if (!gate.ok) {
+      return { ok: false, error: gate.reason };
+    }
+
+    const template = await prisma.orgTemplate.findUnique({
+      where: { organizationId: ctx.organization.id },
+    });
+
+    const payload = emptyStampLetter();
+    if (template) {
+      payload.docNum = template.docNumPrefix;
+      payload.senderAgency = template.agencyName || template.department;
+      payload.contactUnit =
+        template.contactUnit || template.agencyName || template.department;
+      payload.tel = template.tel;
+      payload.address = template.agencyAddress;
+    }
+
+    const doc = await prisma.$transaction(async (tx) => {
+      const created = await tx.document.create({
+        data: {
+          organizationId: ctx.organization.id,
+          createdById: ctx.user.id!,
+          type: DocumentType.STAMP,
+          title: "หนังสือประทับตรา (ฉบับร่าง)",
+          status: DocumentStatus.DRAFT,
+          payload: stringifyPayload(payload),
+        },
+      });
+      await incrementDocUsage(tx, ctx.organization.id, ctx.yearMonth);
+      return created;
+    });
+
+    revalidatePath("/documents");
+    revalidatePath("/dashboard");
+    return { ok: true, documentId: doc.id };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "";
+    if (msg === "UNAUTHORIZED") return { ok: false, error: "กรุณาเข้าสู่ระบบ" };
+    return { ok: false, error: "สร้างเอกสารไม่สำเร็จ" };
+  }
+}
+
 const saveExternalSchema = z.object({
   id: z.string().min(1),
   status: z.enum(["DRAFT", "FINAL"]),
@@ -218,6 +276,55 @@ export async function saveInternalDocumentAction(
       parsed.data.payload.subject.trim() ||
       existing.title ||
       "หนังสือภายใน (ฉบับร่าง)";
+
+    await prisma.document.update({
+      where: { id: existing.id },
+      data: {
+        title,
+        status: parsed.data.status,
+        payload: stringifyPayload(parsed.data.payload),
+      },
+    });
+
+    revalidatePath(`/documents/${existing.id}`);
+    revalidatePath("/documents");
+    return { ok: true, documentId: existing.id };
+  } catch {
+    return { ok: false, error: "บันทึกไม่สำเร็จ" };
+  }
+}
+
+const saveStampSchema = z.object({
+  id: z.string().min(1),
+  status: z.enum(["DRAFT", "FINAL"]),
+  payload: stampLetterSchema,
+});
+
+export async function saveStampDocumentAction(
+  input: z.infer<typeof saveStampSchema>,
+): Promise<DocActionResult> {
+  try {
+    const ctx = await requireOrgContext();
+    const parsed = saveStampSchema.safeParse(input);
+    if (!parsed.success) {
+      return { ok: false, error: "ข้อมูลเอกสารไม่ถูกต้อง" };
+    }
+
+    const existing = await prisma.document.findFirst({
+      where: {
+        id: parsed.data.id,
+        organizationId: ctx.organization.id,
+        type: DocumentType.STAMP,
+      },
+    });
+    if (!existing) {
+      return { ok: false, error: "ไม่พบเอกสาร" };
+    }
+
+    const title = stampDocumentTitle(
+      parsed.data.payload,
+      existing.title || "หนังสือประทับตรา (ฉบับร่าง)",
+    );
 
     await prisma.document.update({
       where: { id: existing.id },

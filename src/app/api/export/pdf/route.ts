@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { buildExternalPdf, buildInternalPdf } from "@/lib/documents/build-pdf";
+import { buildExternalPdf, buildInternalPdf, buildStampPdf } from "@/lib/documents/build-pdf";
 import { DocumentType } from "@/lib/constants";
-import { parseExternalPayload, parseInternalPayload } from "@/lib/documents/payload";
+import {
+  parseExternalPayload,
+  parseInternalPayload,
+  parseStampPayload,
+} from "@/lib/documents/payload";
 import { canExportPdf } from "@/lib/entitlements";
 import { prisma } from "@/lib/db";
 import { requireOrgContext } from "@/lib/org-context";
@@ -27,10 +31,14 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "not found" }, { status: 404 });
     }
 
-    const buffer =
-      doc.type === DocumentType.INTERNAL
-        ? await buildInternalPdf(parseInternalPayload(doc.payload))
-        : await buildExternalPdf(parseExternalPayload(doc.payload));
+    let buffer: Buffer;
+    if (doc.type === DocumentType.INTERNAL) {
+      buffer = await buildInternalPdf(parseInternalPayload(doc.payload));
+    } else if (doc.type === DocumentType.STAMP) {
+      buffer = await buildStampPdf(parseStampPayload(doc.payload));
+    } else {
+      buffer = await buildExternalPdf(parseExternalPayload(doc.payload));
+    }
 
     const yearMonth = currentYearMonth();
     await prisma.usageMeter.upsert({

@@ -2,11 +2,11 @@
 
 **ผลิตภัณฑ์:** ระบบสร้างเอกสารราชการอิเล็กทรอนิกส์แบบหลายผู้ใช้ในหน่วยงาน  
 **เป้าหมายธุรกิจ:** เริ่มใช้งานจริงในหน่วยงาน แล้วขยายเป็น SaaS หารายได้ในอนาคต  
-**สถานะโปรเจกต์ (9 ส.ค. 2026):** MVP ใช้งานได้แล้ว — หนังสือภายนอก + หนังสือภายใน (บันทึกข้อความ) + userflow + Stripe โครงพร้อม  
+**สถานะโปรเจกต์ (14 ส.ค. 2026):** MVP ใช้งานได้แล้ว — ภายนอก + ภายใน + ประทับตรา + userflow + Stripe โครงพร้อม  
 **Branch หลักงาน:** `cursor/mvp-official-documents`  
 **สแต็กปัจจุบัน:** Next.js 16.3 · React 19 · Prisma 5 · SQLite local · Auth.js v5 · Zod 4 · พอร์ต `3010`
 
-> เอกสารรวมสถานะ + userflow + ปัญหาที่เจอ: [`OVERVIEW.md`](OVERVIEW.md) (v1.3)
+> เอกสารรวมสถานะ + userflow + ปัญหาที่เจอ: [`OVERVIEW.md`](OVERVIEW.md) (v1.4)
 
 ---
 
@@ -19,10 +19,10 @@
 | 2 หนังสือภายนอก | schema, editor, preview, CRUD | ✅ เสร็จ |
 | 3 Export | PDF (`@react-pdf/renderer`), print A4, DOCX, UsageMeter | ✅ เสร็จ |
 | 4 UX หน่วยงาน | เทมเพลต, autosave, ค้นหา, duplicate, landing, pricing, `/documents/new` | ✅ เสร็จ |
-| 5 ประเภทเอกสารเพิ่ม | ภายใน ✅ · **ถัดไป: ประทับตรา** · สั่งการ · ประชาสัมพันธ์ · รับรอง/ประชุม | 🔄 กำลังทำ |
+| 5 ประเภทเอกสารเพิ่ม | ภายใน ✅ · ประทับตรา ✅ · **ถัดไป: สั่งการ** · ประชาสัมพันธ์ · รับรอง/ประชุม | 🔄 กำลังทำ |
 | 6 Billing จริง | เปิด Stripe env + conversion | 🔄 โครงโค้ดพร้อม / ยังไม่เปิดขาย |
 
-**ชิ้นงานถัดไปที่ล็อก:** หนังสือประทับตรา (แบบที่ 3)
+**ชิ้นงานถัดไปที่ล็อก:** หนังสือสั่งการ (คำสั่ง)
 
 ---
 
@@ -33,11 +33,11 @@
 | ผู้ใช้ | Multi-tenant: Organization มีหลายบัญชี |
 | ข้อมูล local | **SQLite** (`prisma/dev.db`) — Postgres ผ่าน `docker compose` เมื่อพร้อมโปรดักชัน |
 | Auth | Auth.js (NextAuth v5) — อีเมล/รหัสผ่าน + invite token |
-| เอกสารพร้อมใช้ | **EXTERNAL** + **INTERNAL** ครบ form / preview / บันทึก / PDF / Word |
-| ประเภทถัดไป | ประทับตรา (`STAMP` ยังไม่มีใน constants) → ORDER → ประชาสัมพันธ์ → CERT/MEETING |
+| เอกสารพร้อมใช้ | **EXTERNAL** + **INTERNAL** + **STAMP** ครบ form / preview / บันทึก / PDF / Word |
+| ประเภทถัดไป | ORDER (คำสั่ง) → ประชาสัมพันธ์ → CERT/MEETING |
 | Export PDF | `@react-pdf/renderer` + หน้า `/documents/[id]/print` |
 | Export Word | `docx` ผ่าน `/api/export/docx` |
-| ฟอร์ม editor | React state ใน `ExternalEditor` / `InternalEditor` (ไม่ได้ใช้ react-hook-form) |
+| ฟอร์ม editor | React state ใน `ExternalEditor` / `InternalEditor` / `StampEditor` (ไม่ได้ใช้ react-hook-form) |
 | สไตล์ UI | CSS utilities ใน `globals.css` + next/font (Kanit, Sarabun) — ไม่ได้ใช้ Tailwind package |
 | หารายได้ | schema + feature gate + Stripe Checkout/Portal/Webhook (เปิดเมื่อตั้ง env) |
 | Userflow | จุดสร้างรวมที่ `/documents/new` — ดู [`USERFLOW.md`](USERFLOW.md) |
@@ -53,7 +53,7 @@
 flowchart TB
   subgraph client [Next.js Client]
     Landing[Landing_Pricing]
-    Editor[External_Internal_Editor]
+    Editor[External_Internal_Stamp_Editor]
     History[Documents_List]
     OrgUI[Org_Settings_Invite_Template]
   end
@@ -123,8 +123,8 @@ Invitation
 
 Document
   id, organizationId, createdById
-  type             // EXTERNAL | INTERNAL | MEETING | ORDER | CERT
-                   // (STAMP / PR ยังไม่มีใน constants — เพิ่มเมื่อเริ่มทำ)
+  type             // EXTERNAL | INTERNAL | STAMP | MEETING | ORDER | CERT
+                   // (ประชาสัมพันธ์ยังไม่มีใน constants — เพิ่มเมื่อเริ่มทำ)
   title, status    // DRAFT | FINAL
   payload          // JSON string
   createdAt, updatedAt
@@ -175,12 +175,12 @@ src/app/
     export/pdf|docx/
     stripe/checkout|portal|webhook/
 src/components/
-  editor/ExternalEditor.tsx | InternalEditor.tsx
+  editor/ExternalEditor.tsx | InternalEditor.tsx | StampEditor.tsx
   documents/*Preview.tsx + pdf/*
   billing/*
 src/lib/
   actions/{auth,documents,org}.ts
-  documents/{external,internal}/{schema,docx}.ts
+  documents/{external,internal,stamp}/{schema,docx}.ts
   documents/{labels,limits,payload,build-pdf}.ts
   entitlements.ts, auth.ts, db.ts, stripe.ts, thai.ts, mail.ts
 src/middleware.ts                   # เตือน deprecated → ย้ายเป็น proxy ภายหลัง
@@ -224,8 +224,8 @@ docs/OVERVIEW.md | PLAN.md | USERFLOW.md
 |-------|--------|--------|------------|
 | 1 | หนังสือภายนอก | ✅ | `EXTERNAL` |
 | 2 | หนังสือภายใน (บันทึกข้อความ) | ✅ | `INTERNAL` |
-| 3 | หนังสือประทับตรา | ⏳ **ถัดไป** | ยังไม่มี — จะเพิ่ม เช่น `STAMP` |
-| 4 | หนังสือสั่งการ | ⏳ | `ORDER` (มีใน constants แล้ว) |
+| 3 | หนังสือประทับตรา | ✅ | `STAMP` |
+| 4 | หนังสือสั่งการ | ⏳ **ถัดไป** | `ORDER` (มีใน constants แล้ว) |
 | 5 | หนังสือประชาสัมพันธ์ | ⏳ | ยังไม่มี — แยกจาก ORDER |
 | 6 | หลักฐานในราชการ | ⏳ | `CERT` / `MEETING` |
 
@@ -259,8 +259,8 @@ SSO, e-Signature, เลขที่รันอัตโนมัติ, แช
 ### Phase 5 — 🔄 กำลังทำ
 
 ลำดับบังคับ:
-1. **ประทับตรา** (แบบที่ 3) — schema + form + preview + PDF/Word + เปิดใน `/documents/new`  
-2. สั่งการ (เริ่มคำสั่ง)  
+1. ~~ประทับตรา (แบบที่ 3)~~ ✅  
+2. **สั่งการ** (เริ่มคำสั่ง) — schema + form + preview + PDF/Word + เปิดใน `/documents/new`  
 3. ประชาสัมพันธ์ (ประกาศ)  
 4. รับรอง / รายงานประชุม  
 
@@ -271,7 +271,7 @@ SSO, e-Signature, เลขที่รันอัตโนมัติ, แช
 3. บังคับลิมิต + ข้อความอัปเกรดบน production  
 4. (ภายหลัง) วัด conversion: `hit_limit`, `checkout_started`
 
-### Debt คู่ขนาน (ไม่บล็อกประทับตรา)
+### Debt คู่ขนาน (ไม่บล็อกสั่งการ)
 
 1. แก้ lint `useEffectEvent` ใน editor  
 2. ย้าย `middleware` → `proxy` (Next.js 16)  
@@ -292,7 +292,8 @@ SSO, e-Signature, เลขที่รันอัตโนมัติ, แช
 | 7 | ประเภทไม่พร้อมแสดง “เร็วๆ นี้” | ✅ |
 | 8 | สร้างผ่าน `/documents/new` + onboarding | ✅ |
 | 9 | หนังสือภายใน (บันทึกข้อความ) ครบวงจร | ✅ |
-| 10 | หนังสือประทับตรา ครบวงจร | ⏳ ถัดไป |
+| 10 | หนังสือประทับตรา ครบวงจร | ✅ |
+| 11 | หนังสือสั่งการ ครบวงจร | ⏳ ถัดไป |
 
 ---
 
@@ -303,7 +304,7 @@ SSO, e-Signature, เลขที่รันอัตโนมัติ, แช
 | Layout Word ≠ HTML 100% | ยอมรับ MVP · เน้น PDF เป็นต้นฉบับ |
 | ฟอนต์บนเซิร์ฟเวอร์ | มี TH Sarabun ใน `public/fonts` แล้ว |
 | Multi-tenant รั่วข้าม org | บังคับ `organizationId` + membership ทุก query |
-| Scope บวม | ทำทีละประเภท · ชิ้นถัดไป = ประทับตราเท่านั้น |
+| Scope บวม | ทำทีละประเภท · ชิ้นถัดไป = สั่งการเท่านั้น |
 | เอกสารแผนไม่ตรงโค้ด | อัปเดต PLAN/OVERVIEW คู่กับของจริง (รอบนี้ v1.3) |
 | Lint / middleware debt | เก็บคู่ขนาน ไม่บล็อกฟีเจอร์เอกสาร |
 | Stripe ยังไม่ตั้ง env | อย่าเคลมว่า “เปิดขายแล้ว” จนกว่าใส่ keys |
@@ -314,8 +315,8 @@ SSO, e-Signature, เลขที่รันอัตโนมัติ, แช
 
 ## 9. งานถัดไปตอนนี้ (ลำดับลงมือ)
 
-1. ออกแบบ schema หนังสือประทับตรา (แบบที่ 3 ตามคู่มือ)  
-2. เพิ่มชนิดใน `DocumentType` + labels + `/documents/new`  
+1. ออกแบบ schema หนังสือสั่งการ (คำสั่ง ตามคู่มือ)  
+2. ใช้ `DocumentType.ORDER` + labels + `/documents/new`  
 3. Editor + Preview + PDF + DOCX  
 4. ทดสอบสร้าง/บันทึก/ส่งออก  
 5. อัปเดต OVERVIEW/PLAN/USERFLOW หลังปิดชิ้น  
